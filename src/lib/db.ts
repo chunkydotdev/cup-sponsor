@@ -50,6 +50,13 @@ function open() {
       count INTEGER NOT NULL DEFAULT 0
     );
   `);
+
+  // Added after the first deploys, so existing databases need it bolting on.
+  const columns = db.prepare(`PRAGMA table_info(bids)`).all() as { name: string }[];
+  if (!columns.some((c) => c.name === "notify_email")) {
+    db.exec(`ALTER TABLE bids ADD COLUMN notify_email TEXT`);
+  }
+
   return db;
 }
 
@@ -79,6 +86,8 @@ export type Bid = {
   currency: string;
   status: BidStatus;
   payment_intent_id: string | null;
+  /** Optional: where to say "you have been outbid, here is your money back". */
+  notify_email: string | null;
   created_at: number;
   released_at: number | null;
   captured_at: number | null;

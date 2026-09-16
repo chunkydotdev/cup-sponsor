@@ -78,6 +78,7 @@ export function BidPanel({
   const [logoPath, setLogoPath] = useState<string | null>(null);
   const [sponsor, setSponsor] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [notifyEmail, setNotifyEmail] = useState("");
   const [amount, setAmount] = useState(String(spot.minimumBidCents / 100));
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -109,6 +110,7 @@ export function BidPanel({
       body: JSON.stringify({
         sponsor,
         linkUrl: linkUrl.trim() || null,
+        notifyEmail: notifyEmail.trim() || null,
         logoPath,
         amountCents: Math.round(Number(amount) * 100),
       }),
@@ -229,6 +231,20 @@ export function BidPanel({
             placeholder="https://acme.com"
             className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-sm outline-none focus:border-brew/60"
           />
+        </label>
+
+        <label className="flex flex-col gap-2">
+          <span className="text-xs tracking-wide text-foreground/50 uppercase">Email (optional)</span>
+          <input
+            value={notifyEmail}
+            onChange={(e) => setNotifyEmail(e.target.value)}
+            type="email"
+            placeholder="you@acme.com"
+            className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-sm outline-none focus:border-brew/60"
+          />
+          <span className="text-[11px] text-foreground/35">
+            Only ever used to tell you if somebody doubles you. There are still no accounts.
+          </span>
         </label>
 
         {error && <p className="text-sm text-red-400">{error}</p>}

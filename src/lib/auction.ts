@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db, getBid, leadingBid, type Bid } from "./db";
+import { sendHoldingEmail, sendOutbidEmail } from "./email";
 import { formatMoney, minimumNextBid } from "./money";
 import { biddingClosed } from "./spot";
 import { demoMode, stripe } from "./stripe";
@@ -15,6 +16,8 @@ export type PlaceBidInput = {
   linkUrl: string | null;
   logoPath: string;
   amountCents: number;
+  /** Optional. The only thing we ever do with it is say "you were outbid". */
+  notifyEmail: string | null;
 };
 
 /**
@@ -56,8 +59,8 @@ export async function placeBid(input: PlaceBidInput) {
   }
 
   db().prepare(
-    `INSERT INTO bids (id, sponsor, link_url, logo_path, amount_cents, currency, status, payment_intent_id, created_at)
-     VALUES (@id, @sponsor, @link_url, @logo_path, @amount_cents, 'usd', @status, @payment_intent_id, @created_at)`,
+    `INSERT INTO bids (id, sponsor, link_url, logo_path, amount_cents, currency, status, payment_intent_id, created_at, notify_email)
+     VALUES (@id, @sponsor, @link_url, @logo_path, @amount_cents, 'usd', @status, @payment_intent_id, @created_at, @notify_email)`,
   ).run({
     id,
     sponsor: input.sponsor.trim(),
@@ -67,10 +70,23 @@ export async function placeBid(input: PlaceBidInput) {
     status: demoMode ? "leading" : "pending",
     payment_intent_id: paymentIntentId,
     created_at: now,
+    notify_email: input.notifyEmail,
   });
 
-  // Demo mode has no card step, so the bid takes the spot immediately.
-  if (demoMode) await outbidEveryoneBelow(id);
+  // Demo mode has no card step, so the bid takes the spot immediately — and
+  // has to send the same mail the live path does, or it stops being a preview
+  // of what actually happens.
+  if (demoMode) {
+    const placed = getBid(id)!;
+    await outbidEveryoneBelow(id, placed);
+    if (placed.notify_email) {
+      await sendHoldingEmail({
+        to: placed.notify_email,
+        sponsor: placed.sponsor,
+        amountCents: placed.amount_cents,
+      });
+    }
+  }
 
   return { id, clientSecret, demo: demoMode };
 }
@@ -101,16 +117,31 @@ export async function promoteBid(bidId: string) {
   }
 
   db().prepare(`UPDATE bids SET status = 'leading' WHERE id = ?`).run(bid.id);
-  await outbidEveryoneBelow(bid.id);
+  await outbidEveryoneBelow(bid.id, bid);
+  if (bid.notify_email) {
+    await sendHoldingEmail({ to: bid.notify_email, sponsor: bid.sponsor, amountCents: bid.amount_cents });
+  }
   return getBid(bid.id)!;
 }
 
 /** Release every other standing hold — only one bid owns the cup at a time. */
-async function outbidEveryoneBelow(winnerId: string) {
+async function outbidEveryoneBelow(winnerId: string, winner: Bid) {
   const losers = db()
     .prepare(`SELECT * FROM bids WHERE status = 'leading' AND id != ?`)
     .all(winnerId) as Bid[];
-  for (const loser of losers) await releaseBid(loser.id, "outbid");
+  for (const loser of losers) {
+    await releaseBid(loser.id, "outbid");
+    // Told after the hold is actually cancelled, so the mail is never a lie.
+    if (loser.notify_email) {
+      await sendOutbidEmail({
+        to: loser.notify_email,
+        sponsor: loser.sponsor,
+        wasCents: loser.amount_cents,
+        nowCents: winner.amount_cents,
+        byWhom: winner.sponsor,
+      });
+    }
+  }
 }
 
 /** Cancel the PaymentIntent, which is what actually gives the money back. */

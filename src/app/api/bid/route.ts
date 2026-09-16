@@ -9,6 +9,9 @@ export async function POST(req: Request) {
       linkUrl: body.linkUrl ? String(body.linkUrl) : null,
       logoPath: String(body.logoPath ?? ""),
       amountCents: Math.round(Number(body.amountCents)),
+      notifyEmail: typeof body.notifyEmail === "string" && body.notifyEmail.includes("@")
+        ? body.notifyEmail.trim().slice(0, 254)
+        : null,
     });
     return NextResponse.json(result);
   } catch (err) {
