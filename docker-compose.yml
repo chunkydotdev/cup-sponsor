@@ -12,9 +12,12 @@ services:
     container_name: cupsponsor
     restart: unless-stopped
     env_file: .env
-    # Caddy terminates TLS; nothing here should be reachable from outside.
+    # Published on all interfaces, not loopback: outlive.lol's Caddy is itself a
+    # container and reaches this through host.docker.internal, which resolves to
+    # the bridge gateway rather than the host's 127.0.0.1. Same arrangement as
+    # warhorn.app on 3021. 3021, 3022 and 3031 are taken on this box.
     ports:
-      - "127.0.0.1:3042:3000"
+      - "3042:3000"
     volumes:
       # Everything mutable: the auction database, the uploaded sponsor logos and
       # the morning photographs. One volume, so one thing to back up. Seeded

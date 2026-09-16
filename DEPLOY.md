@@ -37,30 +37,47 @@ It listens on `127.0.0.1:3042`, deliberately unreachable from outside.
 
 ## Caddy
 
-If Caddy runs **on the host**, add to the Caddyfile:
+Caddy lives in the outlive.lol stack (`~/Projects/Work/outlive.lol` locally) as
+a container of its own, and it already has `host.docker.internal:host-gateway`
+in its `extra_hosts`. That is how warhorn.app is routed, and this follows it.
+
+Add to `outlive.lol/Caddyfile`:
 
 ```
 cup.junghard.com {
-    reverse_proxy 127.0.0.1:3042
+	reverse_proxy host.docker.internal:3042
 }
 ```
 
-If Caddy runs **in a container** it cannot see the host's loopback. Put the two
-containers on one network instead:
+then, in the outlive.lol stack on the VPS:
 
 ```bash
-docker network connect <caddy-network> cupsponsor   # docker network ls to find it
+docker compose up -d caddy          # picks up the mounted Caddyfile
 ```
 
-and point Caddy at the container by name, no published port needed:
+Point `cup.junghard.com`'s DNS A record at the VPS first, or Caddy cannot get a
+certificate for it.
+
+Note the port is published on **all** interfaces, not `127.0.0.1`. It has to be:
+`host.docker.internal` resolves to the bridge gateway, not the host's loopback,
+so a container cannot reach a service bound only to `127.0.0.1`. That is the
+same trade-off warhorn.app already makes on 3021.
+
+If you would rather nothing were published at all, put this container on Caddy's
+network instead and proxy to it by name:
+
+```bash
+docker network ls                                  # find outlive.lol's network
+docker network connect <that-network> cupsponsor
+```
 
 ```
 cup.junghard.com {
-    reverse_proxy cupsponsor:3000
+	reverse_proxy cupsponsor:3000
 }
 ```
 
-Then `docker compose exec -w /etc/caddy <caddy-container> caddy reload`.
+and drop the `ports:` block from docker-compose.yml.
 
 ## Stripe, in production
 
