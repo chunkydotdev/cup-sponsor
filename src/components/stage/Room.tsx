@@ -261,6 +261,19 @@ export function CupShadow() {
   );
 }
 
+/** A soft patch under anything standing on the floor, so it is not adrift. */
+export function PropShadow({
+  position,
+  scale,
+  opacity = 0.55,
+}: {
+  position: [number, number, number];
+  scale: number;
+  opacity?: number;
+}) {
+  return <BakedShadow position={position} scale={[scale, scale * 0.9]} opacity={opacity} />;
+}
+
 /** The coaster the cup stands on. */
 export function Coaster() {
   const texture = useMemo(() => (typeof document === "undefined" ? null : coasterTexture()), []);

@@ -3,12 +3,15 @@
 import { Suspense, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
-import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
+import { Bloom, EffectComposer, HueSaturation, Noise, Vignette } from "@react-three/postprocessing";
+import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
+import { Cosy } from "./Cosy";
 import { Gallery } from "./Gallery";
 import { OrbitRig, type Orbit } from "./OrbitRig";
+import { COASTER } from "./Coaster";
 import { Coaster, CoasterShadow, CupShadow, Room, WINDOW_DIR } from "./Room";
-import { StandingMug } from "./StandingMug";
+import { MUG_RADIUS, StandingMug } from "./StandingMug";
 import { ROOM } from "./palette";
 
 export function Stage({
@@ -53,7 +56,7 @@ export function Stage({
       <Canvas
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
-        camera={{ fov: 32, position: [0, 1.32, 3.7], near: 0.1, far: 60 }}
+        camera={{ fov: 32, position: [0, 1.32, 3.7], near: 1, far: 30 }}
       >
         <Suspense fallback={null}>
           <OrbitRig orbit={orbit} />
@@ -65,6 +68,8 @@ export function Stage({
           <Coaster />
           <CupShadow />
           <StandingMug logoUrl={logoUrl} />
+          {/* Steam leaves from the mouth of the cup, not its middle. */}
+          <Cosy steamFrom={[0, COASTER.height + MUG_RADIUS * 2.14, 0]} />
 
           {/* The window is the only light in the room. Everything else is spill. */}
           <ambientLight intensity={0.5} color="#7b6550" />
@@ -79,8 +84,14 @@ export function Stage({
           </Environment>
 
           <EffectComposer>
+            {/* No depth of field: the whole room sits inside about five units,
+                so there is nothing for it to separate, and every setting that
+                blurred the background took the cup with it. */}
             <Bloom mipmapBlur intensity={0.45} luminanceThreshold={0.72} luminanceSmoothing={0.26} />
-            <Vignette eskil={false} offset={0.24} darkness={0.8} />
+            <HueSaturation saturation={0.08} />
+            {/* Grain, lightly. A perfectly clean frame reads as a render. */}
+            <Noise blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.055} />
+            <Vignette eskil={false} offset={0.26} darkness={0.72} />
           </EffectComposer>
         </Suspense>
       </Canvas>

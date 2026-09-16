@@ -158,3 +158,68 @@ export function paneTexture() {
   ctx.fillRect(0, 0, w, h);
   return toTexture(canvas);
 }
+
+/** A soft wool rug: mottled warm tones and one quiet border, no bullseye. */
+export function rugTexture() {
+  const size = 1024;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const random = mulberry32(0x6009);
+
+  ctx.fillStyle = "#7a4a33";
+  ctx.fillRect(0, 0, size, size);
+
+  // Big soft patches, so the wool has depth without turning into a pattern.
+  for (let i = 0; i < 90; i++) {
+    const shade = random();
+    blob(
+      ctx,
+      random() * size,
+      random() * size,
+      size * (0.05 + random() * 0.14),
+      shade > 0.55 ? "#8f5b3e" : shade > 0.25 ? "#69402c" : "#a06c49",
+      0.35,
+    );
+  }
+
+  // One quiet border, the way a rug is bound at the edge.
+  ctx.strokeStyle = "rgba(48,28,18,0.5)";
+  ctx.lineWidth = size * 0.012;
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size * 0.44, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.globalAlpha = 0.12;
+  for (let i = 0; i < 11000; i++) {
+    ctx.fillStyle = random() > 0.5 ? "#000" : "#d6a877";
+    ctx.fillRect(random() * size, random() * size, 2, 2);
+  }
+  ctx.globalAlpha = 1;
+
+  const edge = ctx.createRadialGradient(size / 2, size / 2, size * 0.4, size / 2, size / 2, size * 0.5);
+  edge.addColorStop(0, "rgba(0,0,0,0)");
+  edge.addColorStop(1, "rgba(0,0,0,0.55)");
+  ctx.fillStyle = edge;
+  ctx.fillRect(0, 0, size, size);
+  return toTexture(canvas);
+}
+
+/** Heavy linen, for the curtains. */
+export function clothTexture(base: string) {
+  const size = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, size, size);
+  const random = mulberry32(0xc1071);
+  ctx.globalAlpha = 0.07;
+  for (let i = 0; i < 5200; i++) {
+    ctx.fillStyle = random() > 0.5 ? "#000" : "#fff";
+    const vertical = random() > 0.5;
+    ctx.fillRect(random() * size, random() * size, vertical ? 1 : 3 + random() * 6, vertical ? 3 + random() * 6 : 1);
+  }
+  ctx.globalAlpha = 1;
+  return toTexture(canvas);
+}
