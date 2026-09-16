@@ -1,8 +1,26 @@
 "use client";
 
-import { useLoader } from "@react-three/fiber";
+import { useLoader, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { ROOM } from "./palette";
+
+/** Where the photograph hangs. A portrait phone has no room beside the cup, so
+ *  on narrow screens it hangs above it instead of to its left. */
+const WIDE = { position: [-1.72, 1.12, -3.34] as const, height: 1.55 };
+const NARROW = { position: [-0.06, 1.98, -3.34] as const, height: 1.25 };
+
+export function MorningPhoto({ src }: { src: string }) {
+  const aspect = useThree((s) => s.size.width / s.size.height);
+  const spot = aspect >= 1.1 ? WIDE : NARROW;
+  return (
+    <FramedPhoto
+      src={src}
+      position={[...spot.position]}
+      rotation={[0, aspect >= 1.1 ? 0.1 : 0, 0]}
+      height={spot.height}
+    />
+  );
+}
 
 /**
  * This morning's photograph, framed on the wall. It is the thing being sold —

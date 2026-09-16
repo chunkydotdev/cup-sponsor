@@ -89,8 +89,10 @@ export function tableTexture(base: string, lit: string) {
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, size, size);
 
-  blob(ctx, size * 0.3, size * 0.34, size * 0.46, lit, 0.62);
-  blob(ctx, size * 0.62, size * 0.52, size * 0.3, lit, 0.22);
+  // The pool of light has to land where the cup stands, or the cup has nothing
+  // to cast a shadow onto. Canvas centre is the cup.
+  blob(ctx, size * 0.45, size * 0.46, size * 0.4, lit, 0.7);
+  blob(ctx, size * 0.28, size * 0.36, size * 0.3, lit, 0.4);
 
   // A little grain, so it is not a flat wash under the bloom.
   const random = mulberry32(0xc0ffee);
@@ -149,4 +151,27 @@ export function shaftTexture() {
   ctx.fillRect(0, 0, w, h);
   ctx.globalCompositeOperation = "source-over";
   return toTexture(canvas);
+}
+
+/**
+ * The cup's shadow. It never moves — it only spins — so this is baked rather
+ * than rendered: a shadow pass here would have to see the light shaft too, and
+ * would stamp a hard-edged quad across the table.
+ */
+export function shadowTexture() {
+  const size = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+
+  // A broad ambient pool, then the dark core where the base meets the wood.
+  // The part of a contact shadow you actually see is the rim just outside the
+  // base, so the dark core has to be wider than the cup, not narrower.
+  blob(ctx, size * 0.5, size * 0.5, size * 0.5, "rgba(12,7,3,0.5)", 1);
+  blob(ctx, size * 0.47, size * 0.5, size * 0.3, "rgba(4,2,1,0.92)", 1);
+  blob(ctx, size * 0.46, size * 0.5, size * 0.24, "rgba(0,0,0,1)", 1);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
 }

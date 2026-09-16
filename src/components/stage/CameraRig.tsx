@@ -8,8 +8,8 @@ import * as THREE from "three";
 const TARGET = new THREE.Vector3(0, 0.62, 0);
 const ELEVATION_DEG = 10.7;
 /** Half the room we insist on seeing, in world units. */
-const HALF_WIDTH = 0.95;
-const HALF_HEIGHT = 1.06;
+const HALF_WIDTH = 1.0;
+const HALF_HEIGHT = 1.62;
 
 /**
  * Three keeps the *vertical* field of view fixed, so a portrait phone sees a

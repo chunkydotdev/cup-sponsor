@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { ROOM } from "./palette";
-import { shaftTexture, softDot, tableTexture, wallTexture } from "./textures";
+import { shadowTexture, shaftTexture, softDot, tableTexture, wallTexture } from "./textures";
 
 /** The back wall, with the window's light already on it. */
 function Wall() {
@@ -38,7 +38,7 @@ function LightShaft() {
   useEffect(() => () => texture?.dispose(), [texture]);
   if (!texture) return null;
   return (
-    <group position={[-1.95, 1.55, -0.9]} rotation={[0, 0.42, -0.34]}>
+    <group position={[-2.25, 1.55, -0.9]} rotation={[0, 0.42, -0.34]}>
       <mesh>
         <planeGeometry args={[1.7, 4.6]} />
         <meshBasicMaterial
@@ -128,6 +128,19 @@ function Dust({ count = 110 }: { count?: number }) {
         toneMapped={false}
       />
     </points>
+  );
+}
+
+/** The cup's shadow, stretched away from the window. */
+export function CupShadow() {
+  const texture = useMemo(() => (typeof document === "undefined" ? null : shadowTexture()), []);
+  useEffect(() => () => texture?.dispose(), [texture]);
+  if (!texture) return null;
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.12, 0.004, 0.1]} scale={[2.0, 1.45, 1]}>
+      <planeGeometry args={[1, 1]} />
+      <meshBasicMaterial map={texture} transparent opacity={0.9} depthWrite={false} toneMapped={false} />
+    </mesh>
   );
 }
 
