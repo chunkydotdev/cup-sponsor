@@ -5,14 +5,21 @@ import * as THREE from "three";
 
 /** Pixels around the full circumference of the mug. */
 const WRAP_W = 2048;
-const WRAP_H = 700;
 /** How much of the way around the mug the print is allowed to run. */
 const PRINT_W = 0.3;
 
-function blankWrap() {
+/**
+ * The canvas has to have the same shape as the band it is painted onto, or the
+ * logo comes out stretched. `bandAspect` is circumference ÷ band height.
+ */
+function wrapHeight(bandAspect: number) {
+  return Math.round(WRAP_W / bandAspect);
+}
+
+function blankWrap(bandAspect: number) {
   const canvas = document.createElement("canvas");
   canvas.width = WRAP_W;
-  canvas.height = WRAP_H;
+  canvas.height = wrapHeight(bandAspect);
   return canvas;
 }
 
@@ -26,7 +33,7 @@ function toTexture(canvas: HTMLCanvasElement) {
   return tex;
 }
 
-function drawPlaceholder(ctx: CanvasRenderingContext2D) {
+function drawPlaceholder(ctx: CanvasRenderingContext2D, WRAP_H: number) {
   const w = WRAP_W * PRINT_W;
   const h = WRAP_H * 0.62;
   const x = (WRAP_W - w) / 2;
@@ -47,9 +54,9 @@ function drawPlaceholder(ctx: CanvasRenderingContext2D) {
   ctx.fillText("tomorrow morning", WRAP_W / 2, y + h * 0.65);
 }
 
-function drawLogo(ctx: CanvasRenderingContext2D, img: HTMLImageElement) {
+function drawLogo(ctx: CanvasRenderingContext2D, img: HTMLImageElement, WRAP_H: number) {
   const maxW = WRAP_W * PRINT_W;
-  const maxH = WRAP_H * 0.66;
+  const maxH = WRAP_H * 0.72;
   const scale = Math.min(maxW / img.width, maxH / img.height);
   const w = img.width * scale;
   const h = img.height * scale;
@@ -62,13 +69,13 @@ function drawLogo(ctx: CanvasRenderingContext2D, img: HTMLImageElement) {
  * ceramic shows through everywhere else. Until a logo loads, the dashed
  * placeholder stands in — which is also the empty state of the whole product.
  */
-export function useLogoTexture(logoUrl: string | null) {
+export function useLogoTexture(logoUrl: string | null, bandAspect: number) {
   const placeholder = useMemo(() => {
     if (typeof document === "undefined") return null;
-    const canvas = blankWrap();
-    drawPlaceholder(canvas.getContext("2d")!);
+    const canvas = blankWrap(bandAspect);
+    drawPlaceholder(canvas.getContext("2d")!, canvas.height);
     return toTexture(canvas);
-  }, []);
+  }, [bandAspect]);
 
   // Tagged with the url it was drawn from, so a texture is never shown for a
   // logo that has since been replaced.
@@ -79,15 +86,15 @@ export function useLogoTexture(logoUrl: string | null) {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
-      const canvas = blankWrap();
-      drawLogo(canvas.getContext("2d")!, img);
+      const canvas = blankWrap(bandAspect);
+      drawLogo(canvas.getContext("2d")!, img, canvas.height);
       setLoaded({ url: logoUrl, texture: toTexture(canvas) });
     };
     img.src = logoUrl;
     return () => {
       img.onload = null;
     };
-  }, [logoUrl]);
+  }, [logoUrl, bandAspect]);
 
   useEffect(() => () => loaded?.texture.dispose(), [loaded]);
   useEffect(() => () => placeholder?.dispose(), [placeholder]);

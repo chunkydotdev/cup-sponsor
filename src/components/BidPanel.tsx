@@ -186,7 +186,7 @@ export function BidPanel({
             className="hidden"
             onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
           />
-          {logoPath && <p className="mt-2 text-xs text-brew">Look left — it is on the cup already.</p>}
+          {logoPath && <p className="mt-2 text-xs text-brew">It is on the cup already.</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-3">

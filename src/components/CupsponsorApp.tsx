@@ -1,19 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { MugHero } from "@/components/mug/MugHero";
 import { BidPanel } from "@/components/BidPanel";
 import { Countdown } from "@/components/Countdown";
 import { HowItWorks } from "@/components/HowItWorks";
+import { Modal } from "@/components/Modal";
 import { SponsorHistory } from "@/components/SponsorHistory";
+import { Stage } from "@/components/stage/Stage";
 import { ViewerStats } from "@/components/ViewerStats";
 import { formatMoney } from "@/lib/money";
 import { fetchSpot, type Spot } from "@/lib/spot";
+
+type Sheet = "bid" | "sponsors" | "how" | null;
 
 export function CupsponsorApp({ initialSpot }: { initialSpot: Spot }) {
   const [spot, setSpot] = useState<Spot>(initialSpot);
   /** What the cup shows right now: the leader's logo, or yours while you bid. */
   const [preview, setPreview] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<Sheet>(null);
 
   const refresh = useCallback(async () => {
     const next = await fetchSpot().catch(() => null);
@@ -29,54 +33,89 @@ export function CupsponsorApp({ initialSpot }: { initialSpot: Spot }) {
   const onCup = preview ?? spot.leader?.logoPath ?? null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 py-8 sm:py-14">
-      <header className="mb-8 flex flex-wrap items-baseline justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">cupsponsor</h1>
-          <p className="mt-1 text-sm text-foreground/55">
-            One coffee cup. One logo. A new photo every morning.
-          </p>
-        </div>
-        <p className="text-sm text-foreground/55">
-          next photo in <Countdown />
-        </p>
-      </header>
+    <div className="fixed inset-0 overflow-hidden bg-[#0b0603]">
+      {/* The room glow sits behind the canvas, which is transparent. */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(130%_95%_at_22%_18%,#3d2412_0%,#1a0f08_45%,#0b0603_78%)]" />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="flex flex-col gap-6">
-          <MugHero logoUrl={onCup} />
-          <div className="rounded-2xl border border-line bg-surface p-5">
-            {spot.leader ? (
-              <p className="text-sm text-foreground/70">
-                <span className="text-brew-bright">{spot.leader.sponsor}</span> holds the cup at{" "}
-                <span className="font-mono">{formatMoney(spot.leader.amountCents)}</span>.
-              </p>
-            ) : (
-              <p className="text-sm text-foreground/55">
-                Nobody holds the cup. The first bid takes it.
-              </p>
-            )}
+      <Stage logoUrl={onCup} shifted={sheet !== null} />
+
+      {/* Scrims, so the chrome stays readable whatever the room is doing. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-black/65 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/70 to-transparent" />
+
+      {/* ---- HUD ---------------------------------------------------------- */}
+      <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-4 sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="pointer-events-auto">
+            <h1 className="text-base font-semibold tracking-tight sm:text-lg">cupsponsor</h1>
+            <p className="mt-0.5 text-xs text-foreground/60 sm:text-sm">
+              {spot.leader ? (
+                <>
+                  <span className="text-brew-bright">{spot.leader.sponsor}</span> is on the cup at{" "}
+                  <span className="font-mono">{formatMoney(spot.leader.amountCents)}</span>.
+                </>
+              ) : (
+                <>The cup is empty. The first bid takes it.</>
+              )}
+            </p>
+            <div className="mt-1 flex items-center gap-3 text-[11px] text-foreground/40">
+              <button onClick={() => setSheet("how")} className="underline-offset-2 hover:text-brew hover:underline">
+                How it works
+              </button>
+              <button
+                onClick={() => setSheet("sponsors")}
+                className="underline-offset-2 hover:text-brew hover:underline"
+              >
+                Sponsors
+              </button>
+            </div>
           </div>
-          <HowItWorks />
+
+          <div className="text-right">
+            <p className="mb-0.5 text-[10px] tracking-widest text-foreground/40 uppercase">Next photo in</p>
+            <Countdown />
+          </div>
         </div>
 
-        <aside className="flex flex-col gap-6">
-          <BidPanel
-            spot={spot}
-            onLogoPreview={setPreview}
-            onPlaced={() => {
-              setPreview(null);
-              refresh();
-            }}
-          />
-          <ViewerStats />
-          <SponsorHistory history={spot.history} />
-        </aside>
+        <div className="flex items-end justify-between gap-4">
+          <div className="pointer-events-auto hidden sm:block">
+            <ViewerStats compact />
+          </div>
+
+          <div className="pointer-events-auto flex flex-1 flex-col items-center gap-2 sm:flex-none">
+            <button
+              onClick={() => setSheet("bid")}
+              className="w-full rounded-full bg-brew px-8 py-3 text-sm font-medium text-[#140f0b] shadow-[0_0_40px_-6px_var(--color-brew)] transition hover:bg-brew-bright sm:w-auto"
+            >
+              Take the cup — from {formatMoney(spot.minimumBidCents)}
+            </button>
+            <p className="text-[11px] text-foreground/35">drag to spin the cup</p>
+          </div>
+
+          <div className="hidden text-right text-[11px] text-foreground/40 sm:block">
+            <p className="text-foreground/70">A new photo every morning</p>
+            <p>07:30, Oslo</p>
+          </div>
+        </div>
       </div>
 
-      <footer className="mt-12 border-t border-line pt-6 text-xs text-foreground/35">
-        Fully public: every bid, every sponsor, every number on this page.
-      </footer>
+      {/* ---- Sheets ------------------------------------------------------- */}
+      <Modal open={sheet === "bid"} onClose={() => setSheet(null)}>
+        <BidPanel
+          spot={spot}
+          onLogoPreview={setPreview}
+          onPlaced={() => {
+            setPreview(null);
+            refresh();
+          }}
+        />
+      </Modal>
+      <Modal open={sheet === "sponsors"} onClose={() => setSheet(null)}>
+        <SponsorHistory history={spot.history} />
+      </Modal>
+      <Modal open={sheet === "how"} onClose={() => setSheet(null)}>
+        <HowItWorks />
+      </Modal>
     </div>
   );
 }

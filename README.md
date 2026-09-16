@@ -3,9 +3,12 @@
 One coffee cup. One logo. A new photo every morning.
 
 Every morning there is a photograph of a coffee cup. Whoever is holding the
-highest bid at 07:30 Oslo time has their logo on it. The site renders that in
-3D: the morning photo is real, the white mug on top of it is a WebGL object,
-and the sponsor's logo is wrapped around its curve.
+highest bid at 07:30 Oslo time has their logo on it.
+
+The site is one room. A dark kitchen before anyone else is up: window light
+across a wooden table, dust in the beam, this morning's photograph framed on
+the wall — and the cup itself, in 3D, centre of the table, wearing the current
+sponsor's logo. Drag it to spin it. Everything else is chrome in the corners.
 
 ```bash
 pnpm install
@@ -34,25 +37,18 @@ curl -X POST localhost:3000/api/admin/capture -H "Authorization: Bearer $ADMIN_T
 
 ## The morning ritual
 
-The photo changes daily, so the 3D mug has to be re-pinned to it daily.
-
-1. Shoot the cup **whole** — the entire mug in frame, nothing cropped by the
-   edge. That is the ad space; a cropped cup is a cropped logo.
-2. Open `/calibrate`, drop the new photo in, and drag the sliders until the
-   white cup covers the real one with nothing peeking out. Ghost the cup with
-   the opacity slider to check the edges.
-3. Copy the block it prints into `src/lib/scene.ts`.
-4. Copy the photo to `public/photo/today.jpg`.
-
-`src/lib/scene.ts` is the only place the placement lives. It maps normalised
-photo coordinates (`u` across, `v` down) to a world position along the camera
-ray, so the mug lands on the same pixels at every viewport size.
+Copy the new photograph to `public/photo/today.jpg`. That is the whole ritual —
+the photo hangs on the wall in the scene, so its framing is free. Shoot it
+however you like.
 
 ## Layout
 
-- `src/lib/scene.ts` — where the cup sits on the photo, and the maths for it.
-- `src/components/mug/` — the WebGL cup: lathe profile, handle, coffee, and the
-  logo baked into a full-wrap texture.
+- `src/components/stage/` — the room. Wall, table, light shaft and dust are
+  baked canvas textures rather than lights, because the shape of the light is
+  what sells it and baking costs nothing.
+- `src/components/mug/` — the WebGL cup: lathe profile, tube handle, coffee,
+  and the logo baked into a full-wrap texture. The wrap canvas is built to the
+  band's own aspect ratio; get that wrong and every logo comes out stretched.
 - `src/lib/auction.ts` — bids, holds and releases. The only file that decides
   who owns the cup.
 - `src/app/api/` — spot, bid, confirm, upload, presence, stats, capture, webhook.
@@ -66,12 +62,14 @@ node scripts/shoot.mjs http://localhost:3000 shots/page.png 1440 950
 node scripts/drive.mjs http://localhost:3000 scripts/fixtures/test-logo.png shots
 ```
 
-`drive.mjs` uploads a logo, places a bid, reloads, and fails loudly if the
-leader does not come back from the server. Look at the shots — the cup has to
-cover the real one.
+`drive.mjs` opens the bid panel, uploads a logo, places a bid, reloads, and
+fails loudly if the leader does not come back from the server. Look at the
+shots — the logo has to be on the cup, unstretched, and the cup has to stay
+visible while the panel is open.
 
 ## Known edges
 
 - SQLite on local disk: fine for one machine, wrong for serverless.
-- Logos are served straight from `public/logos` with no image processing.
+- Logos are served straight from `public/logos` with no image processing, and
+  SVG uploads are accepted as-is.
 - The live viewer count is server-local; Plausible owns the historical numbers.
