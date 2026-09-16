@@ -5,7 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { COASTER } from "./Coaster";
 import { ROOM, TABLE } from "./palette";
-import { coasterTexture, shadowTexture, softDot, wallTexture, woodTexture } from "./textures";
+import { coasterTexture, paneTexture, shadowTexture, softDot, wallTexture, woodTexture } from "./textures";
 
 /** Where the window is, as a unit direction on the floor plane. */
 export const WINDOW_DIR = new THREE.Vector3(
@@ -75,45 +75,89 @@ function Table() {
   );
 }
 
+/**
+ * A panel that follows the wall. The room is round, so anything flat pressed
+ * against it buries its own edges inside the curve — a flat 1.9-wide pane only
+ * showed about 1.0 of itself, while the glazing bar in front of it showed more
+ * and appeared to overhang. Everything on the wall is an arc.
+ */
+function arcGeometry(radius: number, width: number, height: number, segments = 24) {
+  const theta = width / radius;
+  return new THREE.CylinderGeometry(radius, radius, height, segments, 1, true, -theta / 2, theta);
+}
+
+function Arc({
+  radius,
+  width,
+  height,
+  y = 0,
+  segments,
+  children,
+}: {
+  radius: number;
+  width: number;
+  height: number;
+  y?: number;
+  segments?: number;
+  children: React.ReactNode;
+}) {
+  const geometry = useMemo(
+    () => arcGeometry(radius, width, height, segments),
+    [radius, width, height, segments],
+  );
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return (
+    <mesh geometry={geometry} position={[0, y, 0]}>
+      {children}
+    </mesh>
+  );
+}
+
 /** The window: the room's only light, and visible as you come round to it. */
 function Window() {
   const glow = useMemo(() => (typeof document === "undefined" ? null : softDot()), []);
   useEffect(() => () => glow?.dispose(), [glow]);
-  const pos = WINDOW_DIR.clone().multiplyScalar(ROOM.radius - 0.02);
+  const pane = useMemo(() => (typeof document === "undefined" ? null : paneTexture()), []);
+  useEffect(() => () => pane?.dispose(), [pane]);
+  // Pushed past white so the bloom pass has something to catch: a window you
+  // can look straight at is not a surface, it is a source.
+  const blown = useMemo(() => new THREE.Color(ROOM.pane).multiplyScalar(2.1), []);
+
+  const R = ROOM.radius;
   return (
-    <group position={[pos.x, 1.35, pos.z]} rotation={[0, ROOM.windowAzimuth + Math.PI, 0]}>
-      <mesh>
-        <planeGeometry args={[1.9, 2.7]} />
-        <meshBasicMaterial color={ROOM.daylight} toneMapped={false} />
-      </mesh>
-      {/* Glazing bars, so it reads as a window rather than a glowing slab. */}
-      <mesh position={[0, 0, 0.012]}>
-        <boxGeometry args={[0.07, 2.7, 0.03]} />
-        <meshBasicMaterial color="#20140c" toneMapped={false} />
-      </mesh>
-      <mesh position={[0, 0.25, 0.012]}>
-        <boxGeometry args={[1.9, 0.06, 0.03]} />
-        <meshBasicMaterial color="#20140c" toneMapped={false} />
-      </mesh>
-      <mesh position={[0, 0, -0.02]}>
-        <planeGeometry args={[2.16, 2.96]} />
-        <meshBasicMaterial color="#2a1a10" toneMapped={false} />
-      </mesh>
+    <group rotation={[0, ROOM.windowAzimuth, 0]}>
+      {/* Reveal, casing, glass, bars — each a shade closer to the room. */}
+      <Arc radius={R - 0.01} width={2.52} height={3.32} y={1.35}>
+        <meshStandardMaterial color="#6d5340" roughness={0.95} side={THREE.BackSide} />
+      </Arc>
+      <Arc radius={R - 0.02} width={2.26} height={3.06} y={1.35}>
+        <meshStandardMaterial color="#cdb99f" roughness={0.9} side={THREE.BackSide} />
+      </Arc>
+      <Arc radius={R - 0.03} width={1.9} height={2.7} y={1.35}>
+        <meshBasicMaterial map={pane} color={blown} side={THREE.BackSide} toneMapped={false} />
+      </Arc>
+      <Arc radius={R - 0.04} width={0.06} height={2.7} y={1.35} segments={3}>
+        <meshBasicMaterial color="#140c06" side={THREE.BackSide} toneMapped={false} />
+      </Arc>
+      <Arc radius={R - 0.04} width={1.9} height={0.055} y={1.6}>
+        <meshBasicMaterial color="#140c06" side={THREE.BackSide} toneMapped={false} />
+      </Arc>
+
       {/* The spill. Additive, in front of the glass, so the window reads as a
           source rather than a bright rectangle stuck on the wall. */}
       {glow && (
-        <mesh position={[0, 0, 0.06]}>
-          <planeGeometry args={[3.4, 4.2]} />
+        <Arc radius={R - 0.12} width={3.6} height={4.4} y={1.35}>
           <meshBasicMaterial
             map={glow}
-            color={ROOM.daylight}
+            color="#fff1d8"
             transparent
-            opacity={0.32}
+            opacity={0.3}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
+            side={THREE.BackSide}
             toneMapped={false}
           />
-        </mesh>
+        </Arc>
       )}
     </group>
   );

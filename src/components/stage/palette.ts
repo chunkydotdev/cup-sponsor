@@ -14,7 +14,10 @@ export const ROOM = {
   wallFoot: "#120b06",
   floor: "#22170f",
   table: "#2b1d13",
+  /** The light the window throws into the room: low morning sun, warm. */
   daylight: "#ffdcae",
+  /** The glass itself: blown-out sky, which is cool and nearly white. */
+  pane: "#eaf1ff",
   frame: "#0e0906",
 } as const;
 

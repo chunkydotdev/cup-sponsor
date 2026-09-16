@@ -135,3 +135,26 @@ export function coasterTexture() {
   ctx.fillRect(0, 0, size, size);
   return toTexture(canvas);
 }
+
+/**
+ * The glass. Sky read through a window is blown out at the top and picks up a
+ * little warmth from the ground near the sill, which is what stops it looking
+ * like a lamp panel.
+ */
+export function paneTexture() {
+  const w = 64;
+  const h = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "#ffffff");
+  g.addColorStop(0.35, "#f2f7ff");
+  g.addColorStop(0.72, "#e4edff");
+  g.addColorStop(0.92, "#f6eedd");
+  g.addColorStop(1, "#ffe9c6");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  return toTexture(canvas);
+}
