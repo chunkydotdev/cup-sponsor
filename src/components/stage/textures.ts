@@ -14,14 +14,7 @@ function mulberry32(seed: number) {
 }
 
 /** One soft-edged blob, painted into a gradient. */
-function blob(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  r: number,
-  color: string,
-  alpha: number,
-) {
+function blob(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, alpha: number) {
   const g = ctx.createRadialGradient(x, y, 0, x, y, r);
   g.addColorStop(0, color);
   g.addColorStop(1, "rgba(0,0,0,0)");
@@ -39,49 +32,30 @@ function toTexture(canvas: HTMLCanvasElement) {
 }
 
 /**
- * The back wall: near-black, with the window's light landing on it as a soft
- * leaning rectangle. Baking it beats lighting it — it costs nothing and it is
- * the shape that sells the room.
+ * The wall, wrapped round the room: u runs all the way about, v is height. A
+ * vertical gradient and nothing else — anything directional has to come from
+ * the actual light now that the camera walks around the room.
  */
-export function wallTexture(base: string, lit: string) {
-  const w = 1024;
-  const h = 640;
+export function wallTexture(top: string, mid: string, foot: string) {
+  const w = 8;
+  const h = 512;
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = base;
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, top);
+  g.addColorStop(0.3, mid);
+  g.addColorStop(0.74, mid);
+  g.addColorStop(0.95, foot);
+  g.addColorStop(1, "#080503");
+  ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
-
-  // Broad warmth spilling in from the left. The camera only ever sees the
-  // middle of this plane, so everything is aimed at u 0.28..0.72, v 0.42..0.96.
-  blob(ctx, w * 0.3, h * 0.62, w * 0.42, lit, 0.62);
-  blob(ctx, w * 0.56, h * 0.7, w * 0.3, lit, 0.24);
-
-  // The window itself, sheared the way a low sun throws it.
-  ctx.save();
-  ctx.transform(1, 0.2, 0, 1, 0, -h * 0.1);
-  ctx.filter = "blur(22px)";
-  ctx.globalAlpha = 0.62;
-  ctx.fillStyle = lit;
-  ctx.fillRect(w * 0.29, h * 0.46, w * 0.115, h * 0.42);
-  ctx.fillRect(w * 0.425, h * 0.46, w * 0.095, h * 0.42);
-  ctx.restore();
-  ctx.filter = "none";
-  ctx.globalAlpha = 1;
-
-  // The floor line is darker than the wall above it.
-  const foot = ctx.createLinearGradient(0, h * 0.88, 0, h);
-  foot.addColorStop(0, "rgba(0,0,0,0)");
-  foot.addColorStop(1, "rgba(0,0,0,0.85)");
-  ctx.fillStyle = foot;
-  ctx.fillRect(0, h * 0.88, w, h * 0.12);
-
   return toTexture(canvas);
 }
 
-/** The tabletop: dark wood, brighter where the window reaches it. */
-export function tableTexture(base: string, lit: string) {
+/** Wood: grain and a little colour variation, no baked light. */
+export function woodTexture(base: string, seed = 0xc0ffee, strokes = 3000) {
   const size = 1024;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
@@ -89,31 +63,18 @@ export function tableTexture(base: string, lit: string) {
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, size, size);
 
-  // The pool of light has to land where the cup stands, or the cup has nothing
-  // to cast a shadow onto. Canvas centre is the cup.
-  blob(ctx, size * 0.45, size * 0.46, size * 0.4, lit, 0.7);
-  blob(ctx, size * 0.28, size * 0.36, size * 0.3, lit, 0.4);
-
-  // A little grain, so it is not a flat wash under the bloom.
-  const random = mulberry32(0xc0ffee);
-  ctx.globalAlpha = 0.06;
-  for (let i = 0; i < 2600; i++) {
+  const random = mulberry32(seed);
+  ctx.globalAlpha = 0.09;
+  for (let i = 0; i < strokes; i++) {
     const y = random() * size;
-    ctx.fillStyle = random() > 0.5 ? "#000" : "#c79a6a";
-    ctx.fillRect(random() * size, y, 40 + random() * 90, 1);
+    ctx.fillStyle = random() > 0.5 ? "#000" : "#caa077";
+    ctx.fillRect(random() * size, y, 40 + random() * 150, 1 + Math.round(random()));
   }
   ctx.globalAlpha = 1;
-
-  const edge = ctx.createRadialGradient(size / 2, size / 2, size * 0.2, size / 2, size / 2, size * 0.52);
-  edge.addColorStop(0, "rgba(0,0,0,0)");
-  edge.addColorStop(1, "rgba(0,0,0,0.9)");
-  ctx.fillStyle = edge;
-  ctx.fillRect(0, 0, size, size);
-
   return toTexture(canvas);
 }
 
-/** A soft round sprite — the light shaft and the dust both use it. */
+/** A soft round sprite — the dust motes use it. */
 export function softDot() {
   const size = 128;
   const canvas = document.createElement("canvas");
@@ -128,50 +89,49 @@ export function softDot() {
   return toTexture(canvas);
 }
 
-/** The beam itself: bright along its length, feathered at both edges. */
-export function shaftTexture() {
-  const w = 256;
-  const h = 256;
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d")!;
-  const across = ctx.createLinearGradient(0, 0, w, 0);
-  across.addColorStop(0, "rgba(255,255,255,0)");
-  across.addColorStop(0.5, "rgba(255,255,255,0.85)");
-  across.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = across;
-  ctx.fillRect(0, 0, w, h);
-  const along = ctx.createLinearGradient(0, 0, 0, h);
-  along.addColorStop(0, "rgba(0,0,0,0)");
-  along.addColorStop(0.25, "rgba(0,0,0,0.25)");
-  along.addColorStop(1, "rgba(0,0,0,1)");
-  ctx.globalCompositeOperation = "destination-out";
-  ctx.fillStyle = along;
-  ctx.fillRect(0, 0, w, h);
-  ctx.globalCompositeOperation = "source-over";
-  return toTexture(canvas);
-}
-
 /**
- * The cup's shadow. It never moves — it only spins — so this is baked rather
- * than rendered: a shadow pass here would have to see the light shaft too, and
- * would stamp a hard-edged quad across the table.
+ * Shadows. Baked rather than rendered: a shadow pass renders every mesh in its
+ * frustum with an override material, which caught the room and stamped hard
+ * edges onto the table. Nothing here moves, so a texture is enough.
+ *
+ * The dark core is deliberately wider than the cup's base: the part of a
+ * contact shadow you actually see is the rim just outside it.
  */
 export function shadowTexture() {
   const size = 512;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
-
-  // A broad ambient pool, then the dark core where the base meets the wood.
-  // The part of a contact shadow you actually see is the rim just outside the
-  // base, so the dark core has to be wider than the cup, not narrower.
   blob(ctx, size * 0.5, size * 0.5, size * 0.5, "rgba(12,7,3,0.5)", 1);
-  blob(ctx, size * 0.47, size * 0.5, size * 0.3, "rgba(4,2,1,0.92)", 1);
-  blob(ctx, size * 0.46, size * 0.5, size * 0.24, "rgba(0,0,0,1)", 1);
+  blob(ctx, size * 0.5, size * 0.5, size * 0.3, "rgba(4,2,1,0.92)", 1);
+  blob(ctx, size * 0.5, size * 0.5, size * 0.24, "rgba(0,0,0,1)", 1);
+  return toTexture(canvas);
+}
 
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+/** Cork, for the coaster: warm, speckled, a shade darker at the rim. */
+export function coasterTexture() {
+  const size = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#9c6b3c";
+  ctx.fillRect(0, 0, size, size);
+
+  const random = mulberry32(0xc0a57e);
+  for (let i = 0; i < 5200; i++) {
+    const r = 1.5 + random() * 5;
+    const shade = random();
+    ctx.fillStyle =
+      shade > 0.72 ? "rgba(58,34,14,0.5)" : shade > 0.4 ? "rgba(196,146,92,0.42)" : "rgba(120,80,42,0.35)";
+    ctx.beginPath();
+    ctx.ellipse(random() * size, random() * size, r, r * (0.6 + random() * 0.8), random() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const edge = ctx.createRadialGradient(size / 2, size / 2, size * 0.22, size / 2, size / 2, size * 0.5);
+  edge.addColorStop(0, "rgba(0,0,0,0)");
+  edge.addColorStop(1, "rgba(0,0,0,0.45)");
+  ctx.fillStyle = edge;
+  ctx.fillRect(0, 0, size, size);
+  return toTexture(canvas);
 }

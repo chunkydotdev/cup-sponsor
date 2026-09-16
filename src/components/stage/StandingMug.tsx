@@ -1,36 +1,20 @@
 "use client";
 
-import { useRef } from "react";
-import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
 import { MUG_BASE_Y, Mug } from "@/components/mug/Mug";
+import { COASTER } from "./Coaster";
 
-/** Rim radius of the cup on the plinth, in world units. */
+/** Rim radius of the cup on the table, in world units. */
 export const MUG_RADIUS = 0.5;
 
 /**
- * The cup, standing on its own base rather than pinned to a photograph. Drag
- * spins it; let go and it drifts back to facing the room.
+ * The cup, standing still on its coaster in the middle of the room. It does not
+ * turn — the camera walks around it, and the spot is printed on both faces so
+ * it reads from either side.
  */
-export function StandingMug({ logoUrl, spin }: { logoUrl: string | null; spin: React.RefObject<number> }) {
-  const holder = useRef<THREE.Group>(null);
-
-  // useFrame runs on the render loop, not React's — mutating the scene graph
-  // and the spin ref here is how react-three-fiber is meant to animate.
-  // eslint-disable-next-line react-hooks/immutability
-  useFrame(({ clock }, delta) => {
-    if (!holder.current) return;
-    const idle = Math.sin(clock.getElapsedTime() * 0.22) * 0.32;
-    holder.current.rotation.y = THREE.MathUtils.damp(holder.current.rotation.y, spin.current + idle, 5, delta);
-    // eslint-disable-next-line react-hooks/immutability
-    spin.current = THREE.MathUtils.damp(spin.current, 0, 0.9, delta);
-  });
-
+export function StandingMug({ logoUrl }: { logoUrl: string | null }) {
   return (
-    <group position={[0, -MUG_BASE_Y * MUG_RADIUS, 0]} scale={MUG_RADIUS}>
-      <group ref={holder}>
-        <Mug logoUrl={logoUrl} />
-      </group>
+    <group position={[0, COASTER.height - MUG_BASE_Y * MUG_RADIUS, 0]} scale={MUG_RADIUS}>
+      <Mug logoUrl={logoUrl} />
     </group>
   );
 }

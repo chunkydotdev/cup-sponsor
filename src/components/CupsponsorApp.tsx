@@ -13,7 +13,15 @@ import { fetchSpot, type Spot } from "@/lib/spot";
 
 type Sheet = "bid" | "sponsors" | "how" | null;
 
-export function CupsponsorApp({ initialSpot }: { initialSpot: Spot }) {
+export function CupsponsorApp({
+  initialSpot,
+  today,
+  past,
+}: {
+  initialSpot: Spot;
+  today: string;
+  past: string[];
+}) {
   const [spot, setSpot] = useState<Spot>(initialSpot);
   /** What the cup shows right now: the leader's logo, or yours while you bid. */
   const [preview, setPreview] = useState<string | null>(null);
@@ -37,7 +45,7 @@ export function CupsponsorApp({ initialSpot }: { initialSpot: Spot }) {
       {/* The room glow sits behind the canvas, which is transparent. */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(130%_95%_at_22%_18%,#3d2412_0%,#1a0f08_45%,#0b0603_78%)]" />
 
-      <Stage logoUrl={onCup} shifted={sheet !== null} />
+      <Stage logoUrl={onCup} today={today} past={past} shifted={sheet !== null} />
 
       {/* Scrims, so the chrome stays readable whatever the room is doing. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-black/65 to-transparent" />
@@ -89,8 +97,7 @@ export function CupsponsorApp({ initialSpot }: { initialSpot: Spot }) {
             >
               Take the cup — from {formatMoney(spot.minimumBidCents)}
             </button>
-            <p className="text-[11px] text-foreground/35">drag to spin the cup</p>
-          </div>
+              </div>
 
           <div className="hidden text-right text-[11px] text-foreground/40 sm:block">
             <p className="text-foreground/70">A new photo every morning</p>

@@ -5,80 +5,86 @@ import { Canvas } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { PHOTO_SRC } from "@/lib/photo";
-import { CameraRig } from "./CameraRig";
-import { MorningPhoto } from "./FramedPhoto";
-import { CupShadow, Room } from "./Room";
+import { Gallery } from "./Gallery";
+import { OrbitRig, type Orbit } from "./OrbitRig";
+import { Coaster, CoasterShadow, CupShadow, Room, WINDOW_DIR } from "./Room";
 import { StandingMug } from "./StandingMug";
 import { ROOM } from "./palette";
 
 export function Stage({
   logoUrl,
+  today,
+  past,
   shifted = false,
   className = "",
 }: {
   logoUrl: string | null;
+  today: string;
+  past: string[];
   /** Slide the room left when a panel is open, so the cup stays in view. */
   shifted?: boolean;
   className?: string;
 }) {
-  const spin = useRef(0);
-  const dragging = useRef(false);
+  const orbit = useRef<Orbit>({ offset: 0, velocity: 0, dragging: false });
   const lastX = useRef(0);
+
+  const key = WINDOW_DIR.clone().multiplyScalar(ROOM.radius - 1.5);
 
   return (
     <div
       className={`absolute inset-0 touch-pan-y transition-transform duration-500 ease-out select-none ${shifted ? "sm:-translate-x-[14%]" : ""} ${className}`}
       onPointerDown={(e) => {
-        dragging.current = true;
+        orbit.current.dragging = true;
+        orbit.current.velocity = 0;
         lastX.current = e.clientX;
       }}
       onPointerMove={(e) => {
-        if (!dragging.current) return;
-        spin.current = THREE.MathUtils.clamp(
-          spin.current - (e.clientX - lastX.current) / 180,
-          -Math.PI * 2,
-          Math.PI * 2,
-        );
+        if (!orbit.current.dragging) return;
+        // Drag walks you round the room one-to-one, and the last flick is what
+        // it carries on doing once you let go.
+        const turn = (e.clientX - lastX.current) / 260;
+        orbit.current.offset += turn;
+        orbit.current.velocity = THREE.MathUtils.clamp(turn * 60, -6, 6);
         lastX.current = e.clientX;
       }}
-      onPointerUp={() => (dragging.current = false)}
-      onPointerLeave={() => (dragging.current = false)}
+      onPointerUp={() => (orbit.current.dragging = false)}
+      onPointerLeave={() => (orbit.current.dragging = false)}
     >
       <Canvas
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
-        camera={{ fov: 32, position: [0, 1.32, 3.7], near: 0.1, far: 40 }}
+        camera={{ fov: 32, position: [0, 1.32, 3.7], near: 0.1, far: 60 }}
       >
         <Suspense fallback={null}>
-          <CameraRig />
-          <fog attach="fog" args={["#0d0805", 5.5, 15]} />
+          <OrbitRig orbit={orbit} />
+          <fog attach="fog" args={["#0d0805", 8, 22]} />
 
           <Room />
-          <StandingMug logoUrl={logoUrl} spin={spin} />
-
-          {/* This morning's photograph, framed on the wall behind the cup. */}
-          <MorningPhoto src={PHOTO_SRC} />
-
-          {/* The cup has to sit on the table, not hover over it. */}
+          <Gallery today={today} past={past} />
+          <CoasterShadow />
+          <Coaster />
           <CupShadow />
+          <StandingMug logoUrl={logoUrl} />
 
-          {/* Key light is the window, off to the upper left. */}
-          <ambientLight intensity={0.22} color="#6d5946" />
-          <directionalLight position={[-3.4, 4.2, 2.2]} intensity={2.3} color={ROOM.daylight} />
-          <directionalLight position={[3.2, 1.4, 1.6]} intensity={0.35} color="#8fa6c4" />
+          {/* The window is the only light in the room. Everything else is spill. */}
+          <ambientLight intensity={0.5} color="#7b6550" />
+          <directionalLight position={[key.x, 3.4, key.z]} intensity={1.9} color={ROOM.daylight} />
+          <pointLight position={[key.x, 1.6, key.z]} intensity={11} distance={18} decay={2} color={ROOM.daylight} />
+          {/* Just enough bounce that the far side of the cup is never a hole. */}
+          <directionalLight position={[-key.x, 1.6, -key.z]} intensity={0.85} color="#a08a6c" />
           <Environment resolution={256}>
-            <Lightformer form="rect" intensity={3} position={[-3.5, 3.2, 2.4]} scale={[4, 6, 1]} color="#ffe6c4" />
-            <Lightformer form="rect" intensity={0.4} position={[3.5, 1.5, 1.5]} scale={[3, 4, 1]} color="#7d94b5" />
-            <Lightformer form="rect" intensity={0.25} position={[0, -2, -3]} scale={[8, 8, 1]} color="#2a1a10" />
+            <Lightformer form="rect" intensity={3.2} position={[key.x, 2.2, key.z]} scale={[3, 5, 1]} color="#ffe6c4" />
+            <Lightformer form="rect" intensity={0.6} position={[-key.x, 1.4, -key.z]} scale={[5, 4, 1]} color="#7d6248" />
+            <Lightformer form="rect" intensity={0.2} position={[0, -3, 0]} scale={[9, 9, 1]} color="#2a1a10" />
           </Environment>
 
           <EffectComposer>
-            <Bloom mipmapBlur intensity={0.55} luminanceThreshold={0.62} luminanceSmoothing={0.28} />
-            <Vignette eskil={false} offset={0.26} darkness={0.78} />
+            <Bloom mipmapBlur intensity={0.45} luminanceThreshold={0.72} luminanceSmoothing={0.26} />
+            <Vignette eskil={false} offset={0.24} darkness={0.8} />
           </EffectComposer>
         </Suspense>
       </Canvas>
+
     </div>
   );
 }

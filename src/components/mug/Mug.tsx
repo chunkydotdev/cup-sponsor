@@ -11,48 +11,49 @@ import { useLogoTexture } from "./useLogoTexture";
  */
 const OUTER: [number, number][] = [
   [0.0, -2.3],
-  [0.74, -2.3],
-  [0.8, -2.288],
-  [0.825, -2.255],
-  [0.838, -2.2],
-  [0.858, -2.0],
-  [0.888, -1.6],
-  [0.922, -1.1],
-  [0.955, -0.6],
-  [0.982, -0.18],
-  [0.996, -0.04],
+  [0.78, -2.3],
+  [0.9, -2.292],
+  [0.955, -2.268],
+  [0.985, -2.222],
+  [0.998, -2.15],
+  [1.0, -2.02],
+  [1.0, -0.2],
+  [1.0, -0.05],
   [1.0, 0.0],
 ];
 
 const INNER: [number, number][] = [
-  [0.99, 0.024],
-  [0.955, 0.03],
-  [0.928, 0.014],
-  [0.918, -0.06],
-  [0.895, -0.5],
-  [0.862, -1.1],
-  [0.83, -1.7],
-  [0.795, -2.1],
-  [0.74, -2.2],
-  [0.62, -2.24],
-  [0.0, -2.26],
+  [0.995, 0.018],
+  [0.968, 0.026],
+  [0.94, 0.012],
+  [0.932, -0.06],
+  [0.932, -1.86],
+  [0.918, -2.02],
+  [0.84, -2.12],
+  [0.66, -2.16],
+  [0.0, -2.17],
 ];
 
 export const MUG_BASE_Y = -2.3;
 
 /** The printable band — where a mug is actually printed. */
-export const PRINT = { top: -0.55, bottom: -1.85 };
+export const PRINT = { top: -0.45, bottom: -1.95 };
 
-/** The handle, as a tube that leaves the wall and comes back to it. */
+/**
+ * The handle: a big open D that leaves the straight wall near the top, bows
+ * right out, and comes back to it near the bottom — the shape of a plain white
+ * promotional mug.
+ */
 const HANDLE_PATH: [number, number][] = [
-  [0.9, -0.58],
-  [1.32, -0.7],
-  [1.47, -1.05],
-  [1.38, -1.42],
-  [1.02, -1.62],
-  [0.86, -1.64],
+  [0.96, -0.3],
+  [1.45, -0.42],
+  [1.8, -0.85],
+  [1.87, -1.2],
+  [1.78, -1.58],
+  [1.42, -1.92],
+  [0.96, -2.03],
 ];
-const HANDLE_RADIUS = 0.092;
+const HANDLE_RADIUS = 0.1;
 
 /** Outer radius of the wall at a given height — where the print has to sit. */
 function outerRadiusAt(y: number) {
@@ -115,8 +116,8 @@ export function Mug({ logoUrl, opacity = 1 }: { logoUrl: string | null; opacity?
       {/* Coffee. The mesh waits for its texture: a material compiled without a
           map never grows one. */}
       {coffee && (
-        <mesh position={[0, -0.24, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.9, 64]} />
+        <mesh position={[0, -0.22, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.92, 64]} />
           <meshPhysicalMaterial
             map={coffee}
             roughness={0.33}
@@ -129,9 +130,10 @@ export function Mug({ logoUrl, opacity = 1 }: { logoUrl: string | null; opacity?
         </mesh>
       )}
 
-      {/* The sponsored band. The centre of the texture faces the camera. */}
+      {/* The sponsored band. Turned so the first of the two printed faces meets
+          the camera; the texture seam ends up on neither of them. */}
       {logo && (
-        <mesh position={[0, (PRINT.top + PRINT.bottom) / 2, 0]} rotation={[0, Math.PI, 0]}>
+        <mesh position={[0, (PRINT.top + PRINT.bottom) / 2, 0]} rotation={[0, -Math.PI / 2, 0]}>
           <cylinderGeometry args={[topR, bottomR, printHeight, 128, 1, true]} />
           <meshStandardMaterial
             map={logo}

@@ -5,8 +5,14 @@ import * as THREE from "three";
 
 /** Pixels around the full circumference of the mug. */
 const WRAP_W = 2048;
-/** How much of the way around the mug the print is allowed to run. */
-const PRINT_W = 0.3;
+/** How much of the way around the mug one print is allowed to run. */
+const PRINT_W = 0.34;
+
+/**
+ * The same spot is printed twice, half a turn apart, so the cup reads from
+ * either side as it turns. Both sit clear of the texture seam at u = 0.
+ */
+const FACES = [0.25, 0.75];
 
 /**
  * The canvas has to have the same shape as the band it is painted onto, or the
@@ -36,22 +42,24 @@ function toTexture(canvas: HTMLCanvasElement) {
 function drawPlaceholder(ctx: CanvasRenderingContext2D, WRAP_H: number) {
   const w = WRAP_W * PRINT_W;
   const h = WRAP_H * 0.62;
-  const x = (WRAP_W - w) / 2;
   const y = (WRAP_H - h) / 2;
 
-  ctx.strokeStyle = "rgba(90, 96, 110, 0.55)";
-  ctx.lineWidth = 7;
-  ctx.setLineDash([26, 22]);
-  ctx.strokeRect(x, y, w, h);
+  for (const face of FACES) {
+    const cx = WRAP_W * face;
+    ctx.strokeStyle = "rgba(90, 96, 110, 0.55)";
+    ctx.lineWidth = 7;
+    ctx.setLineDash([26, 22]);
+    ctx.strokeRect(cx - w / 2, y, w, h);
 
-  ctx.setLineDash([]);
-  ctx.fillStyle = "rgba(90, 96, 110, 0.72)";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = `600 ${Math.round(h * 0.17)}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-  ctx.fillText("YOUR LOGO", WRAP_W / 2, y + h * 0.42);
-  ctx.font = `500 ${Math.round(h * 0.1)}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-  ctx.fillText("tomorrow morning", WRAP_W / 2, y + h * 0.65);
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(90, 96, 110, 0.72)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `600 ${Math.round(h * 0.17)}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+    ctx.fillText("YOUR LOGO", cx, y + h * 0.42);
+    ctx.font = `500 ${Math.round(h * 0.1)}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+    ctx.fillText("tomorrow morning", cx, y + h * 0.65);
+  }
 }
 
 function drawLogo(ctx: CanvasRenderingContext2D, img: HTMLImageElement, WRAP_H: number) {
@@ -60,7 +68,9 @@ function drawLogo(ctx: CanvasRenderingContext2D, img: HTMLImageElement, WRAP_H: 
   const scale = Math.min(maxW / img.width, maxH / img.height);
   const w = img.width * scale;
   const h = img.height * scale;
-  ctx.drawImage(img, (WRAP_W - w) / 2, (WRAP_H - h) / 2, w, h);
+  for (const face of FACES) {
+    ctx.drawImage(img, WRAP_W * face - w / 2, (WRAP_H - h) / 2, w, h);
+  }
 }
 
 /**
