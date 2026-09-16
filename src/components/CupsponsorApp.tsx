@@ -80,7 +80,7 @@ export function CupsponsorApp({
           </div>
 
           <div className="text-right">
-            <p className="mb-0.5 text-[10px] tracking-widest text-foreground/40 uppercase">Next photo in</p>
+            <p className="mb-0.5 text-[10px] tracking-widest text-foreground/40 uppercase">Bidding ends in</p>
             <Countdown />
           </div>
         </div>
@@ -93,15 +93,16 @@ export function CupsponsorApp({
           <div className="pointer-events-auto flex flex-1 flex-col items-center gap-2 sm:flex-none">
             <button
               onClick={() => setSheet("bid")}
-              className="w-full rounded-full bg-brew px-8 py-3 text-sm font-medium text-[#140f0b] shadow-[0_0_40px_-6px_var(--color-brew)] transition hover:bg-brew-bright sm:w-auto"
+              disabled={spot.closed}
+              className="w-full rounded-full bg-brew px-8 py-3 text-sm font-medium text-[#140f0b] shadow-[0_0_40px_-6px_var(--color-brew)] transition hover:bg-brew-bright disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none sm:w-auto"
             >
-              Take the cup — from {formatMoney(spot.minimumBidCents)}
+              {spot.closed ? "Bidding closed" : `Take the cup — ${formatMoney(spot.minimumBidCents)}`}
             </button>
               </div>
 
           <div className="hidden text-right text-[11px] text-foreground/40 sm:block">
-            <p className="text-foreground/70">A new photo every morning</p>
-            <p>07:30, Oslo</p>
+            <p className="text-foreground/70">Printed on a real mug</p>
+            <p>In every morning photo for two weeks</p>
           </div>
         </div>
       </div>

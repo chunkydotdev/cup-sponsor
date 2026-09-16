@@ -4,18 +4,20 @@ const STEPS = [
     body: "Drop in a PNG or an SVG and watch it wrap onto the cup in front of you. No account, no forms beyond a name.",
   },
   {
-    title: "Outbid whoever is on it",
-    body: "One spot, one holder. Beat the standing bid and the cup is yours until someone beats you.",
+    title: "Double it to take it",
+    body: "An empty cup costs $50. After that, taking it off whoever holds it costs double what they paid — so the price of the spot is never a guess.",
   },
   {
-    title: "Your card is held, not charged",
-    body: "We authorise the amount and leave it there. Get outbid and the hold is released the same second.",
+    title: "Your card is held, never charged",
+    body: "We authorise the amount and leave it sitting there. The second somebody doubles you, that hold is cancelled and the money is back — not refunded later, released immediately.",
   },
   {
-    title: "07:30, the photo goes out",
-    body: "Whoever is holding the cup at 07:30 Oslo time is on the photo — and only then does the money move.",
+    title: "20 September, it gets printed",
+    body: "Whoever holds the cup when bidding closes has their logo printed on a real mug — and that mug is the one in every morning photo for the fortnight after.",
   },
 ];
+
+
 
 export function HowItWorks() {
   return (

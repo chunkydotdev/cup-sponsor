@@ -7,9 +7,9 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "cupsponsor — one mug, one logo, every morning",
+  title: "cupsponsor — your logo on the mug, every morning for two weeks",
   description:
-    "Every morning there is a photo of a coffee cup. The highest bidder's logo is on it. Bid to take the spot; you are only charged if your logo makes it to the photo.",
+    "One auction for one coffee mug. Whoever holds the highest bid on 20 September gets their logo printed on it for real, and that mug is in every morning photo for the fortnight after. Bids are held, never charged — get doubled and your money is back the same second.",
 };
 
 const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;

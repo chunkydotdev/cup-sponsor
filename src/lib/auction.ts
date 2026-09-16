@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { db, getBid, leadingBid, type Bid } from "./db";
-import { minimumNextBid } from "./money";
+import { formatMoney, minimumNextBid } from "./money";
+import { biddingClosed } from "./spot";
 import { demoMode, stripe } from "./stripe";
 
 export class BidError extends Error {
@@ -23,10 +24,15 @@ export type PlaceBidInput = {
  * calls `promoteBid`.
  */
 export async function placeBid(input: PlaceBidInput) {
+  if (biddingClosed()) throw new BidError("Bidding has closed. The cup is spoken for.", 409);
   const lead = leadingBid();
   const floor = minimumNextBid(lead?.amount_cents ?? null);
   if (!Number.isInteger(input.amountCents) || input.amountCents < floor) {
-    throw new BidError(`Bid must be at least ${floor / 100} to take the spot.`);
+    throw new BidError(
+      lead
+        ? `Taking the cup costs ${formatMoney(floor)} — double what ${lead.sponsor} is holding it at.`
+        : `The cup is empty: ${formatMoney(floor)} takes it.`,
+    );
   }
   if (!input.sponsor.trim()) throw new BidError("Sponsor name is required.");
   if (!input.logoPath) throw new BidError("A logo is required — it is the thing we print.");

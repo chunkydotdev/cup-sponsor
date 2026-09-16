@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { Duck } from "./Duck";
 import { Teddy } from "./Teddy";
 import { PropShadow } from "./Room";
 import { ROOM } from "./palette";
@@ -219,11 +220,11 @@ function Steam({ from, count = 170 }: { from: [number, number, number]; count?: 
 
   if (!sprite) return null;
   return (
-    <points ref={points} geometry={geometry} position={from} scale={[1, 1.1, 1]}>
+    <points ref={points} geometry={geometry} position={from} scale={[1, 0.62, 1]}>
       <pointsMaterial
         map={sprite}
         color="#ffe9cf"
-        size={0.085}
+        size={0.07}
         sizeAttenuation
         transparent
         opacity={0.055}
@@ -257,6 +258,9 @@ export function Cosy({ steamFrom }: { steamFrom: [number, number, number] }) {
         fur="#8d8a93"
         muzzle="#ded9d2"
       />
+      {/* A duck, on the rug, on the window side so the gloss catches the light. */}
+      <PropShadow position={at(2.62, 2.55, ROOM.floorY + 0.02)} scale={0.78} opacity={0.42} />
+      <Duck position={at(2.62, 2.55, ROOM.floorY + 0.014)} rotation={[0, -2.62 + 2.3, 0]} scale={0.56} />
       <Steam from={steamFrom} />
     </group>
   );

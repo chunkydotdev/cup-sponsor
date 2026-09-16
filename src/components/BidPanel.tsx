@@ -57,8 +57,9 @@ function CardStep({ bidId, onDone }: { bidId: string; onDone: () => void }) {
         {busy ? "Placing the hold…" : "Authorise the hold"}
       </button>
       <p className="text-xs text-foreground/45">
-        We only place a hold. The money moves at 07:30 if your logo is still on the cup — and the hold
-        is released the moment someone outbids you.
+        This is a hold, not a charge. The money only moves when bidding closes on 20 September, and
+        only if you are still holding the cup. The moment somebody doubles you, the hold is cancelled
+        and you have your money back.
       </p>
     </form>
   );
@@ -128,8 +129,9 @@ export function BidPanel({
       <div className="rounded-2xl border border-brew/40 bg-surface p-6">
         <h2 className="mb-2 text-lg font-medium">The cup is yours.</h2>
         <p className="text-sm text-foreground/60">
-          Your logo is on tomorrow morning&apos;s mug unless someone outbids you before 07:30. We will
-          email nobody, because there are no accounts here — just watch the cup.
+          You are holding the cup. Unless somebody doubles you before bidding closes on 20 September,
+          your logo gets printed on a real mug — and that mug is in every morning photo for the two
+          weeks after.
         </p>
       </div>
     );
@@ -158,7 +160,16 @@ export function BidPanel({
     <div className="rounded-2xl border border-line bg-surface p-6">
       <h2 className="mb-1 text-lg font-medium">Take the cup</h2>
       <p className="mb-5 text-sm text-foreground/55">
-        Minimum bid right now is <span className="text-brew-bright">{formatMoney(minimum)}</span>.
+        {spot.leader ? (
+          <>
+            {spot.leader.sponsor} holds it at {formatMoney(spot.leader.amountCents)}. Doubling that —{" "}
+            <span className="text-brew-bright">{formatMoney(minimum)}</span> — takes it.
+          </>
+        ) : (
+          <>
+            The cup is empty. <span className="text-brew-bright">{formatMoney(minimum)}</span> takes it.
+          </>
+        )}
       </p>
 
       <div className="flex flex-col gap-4">

@@ -1,7 +1,7 @@
 import "server-only";
 import { bidHistory, leadingBid, type Bid } from "./db";
 import { minimumNextBid } from "./money";
-import type { PublicBid, Spot } from "./spot";
+import { biddingClosed, type PublicBid, type Spot } from "./spot";
 import { demoMode } from "./stripe";
 
 function publicBid(bid: Bid): PublicBid {
@@ -24,5 +24,6 @@ export function readSpot(): Spot {
     minimumBidCents: minimumNextBid(lead?.amount_cents ?? null),
     history: bidHistory().map(publicBid),
     demoMode,
+    closed: biddingClosed(),
   };
 }
