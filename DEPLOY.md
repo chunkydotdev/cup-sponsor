@@ -9,6 +9,12 @@ git clone <repo> /home/dev/cupsponsor && cd /home/dev/cupsponsor
 mkdir -p volumes/data
 ```
 
+The container runs as uid 1000, which is the first login user on a typical
+Linux host — so a `volumes/data` created by that user is writable as-is. If
+your user is not 1000, `sudo chown -R 1000:1000 volumes/data`. A bind mount
+shadows whatever the image says about ownership and brings the host
+directory's uid with it; get that wrong and sqlite fails with CANTOPEN.
+
 `volumes/data` holds the whole of the mutable site: the auction database, the
 uploaded sponsor logos and the morning photographs. It seeds itself from the
 image the first time it starts, so there is nothing to copy across.

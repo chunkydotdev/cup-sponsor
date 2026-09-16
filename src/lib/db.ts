@@ -9,7 +9,18 @@ declare global {
 }
 
 function open() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.accessSync(DATA_DIR, fs.constants.W_OK);
+  } catch {
+    // sqlite's own message for this is "unable to open database file", which
+    // sends you hunting for a missing file rather than a permission bit.
+    throw new Error(
+      `Cannot write to ${DATA_DIR} (running as uid ${process.getuid?.() ?? "?"}). ` +
+        `If this is a bind-mounted volume, the directory on the host has to be writable by that uid — ` +
+        `try: sudo chown -R 1000:1000 <the mounted directory>`,
+    );
+  }
   const db = new Database(path.join(DATA_DIR, "cupsponsor.db"));
   db.pragma("journal_mode = WAL");
   db.exec(`

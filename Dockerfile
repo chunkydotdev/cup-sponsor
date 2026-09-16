@@ -33,15 +33,22 @@ FROM base AS runtime
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 \
     CUPSPONSOR_DATA_DIR=/data
-RUN useradd -m -u 1001 cupsponsor && mkdir -p /data && chown cupsponsor /data
 
-COPY --from=build --chown=cupsponsor /app/.next/standalone ./
-COPY --from=build --chown=cupsponsor /app/.next/static ./.next/static
-COPY --from=build --chown=cupsponsor /app/public ./public
+# Runs as the image's own `node` user, which is uid 1000 — the same uid as the
+# first login user on a typical Linux host. That matters because /data is a bind
+# mount: it shadows whatever the image says about ownership and brings the
+# host directory's uid with it. A container user that does not match cannot
+# write there, and sqlite fails with CANTOPEN. (On macOS this never shows up —
+# Docker Desktop rewrites bind-mount ownership to whoever is asking.)
+RUN mkdir -p /data && chown node:node /data
+
+COPY --from=build --chown=node:node /app/.next/standalone ./
+COPY --from=build --chown=node:node /app/.next/static ./.next/static
+COPY --from=build --chown=node:node /app/public ./public
 # Nothing else to copy: serverExternalPackages keeps better-sqlite3 out of the
 # bundle, and Next's file tracer puts the package and its compiled .node binding
 # inside .next/standalone itself.
 
-USER cupsponsor
+USER node
 EXPOSE 3000
 CMD ["node", "server.js"]
