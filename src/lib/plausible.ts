@@ -40,9 +40,9 @@ export async function audience(): Promise<Audience> {
     return { source: "plausible", today, last30Days: last30Days ?? today, allTime: allTime ?? today };
   }
   const day = new Date().toISOString().slice(0, 10);
-  const local = db.prepare(`SELECT COALESCE(SUM(count),0) AS n FROM views`).get() as { n: number };
-  const dayRow = db.prepare(`SELECT count FROM views WHERE day = ?`).get(day) as { count: number } | undefined;
-  const thirty = db
+  const local = db().prepare(`SELECT COALESCE(SUM(count),0) AS n FROM views`).get() as { n: number };
+  const dayRow = db().prepare(`SELECT count FROM views WHERE day = ?`).get(day) as { count: number } | undefined;
+  const thirty = db()
     .prepare(`SELECT COALESCE(SUM(count),0) AS n FROM views WHERE day >= ?`)
     .get(new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10)) as { n: number };
   return { source: "local", today: dayRow?.count ?? 0, last30Days: thirty.n, allTime: local.n };

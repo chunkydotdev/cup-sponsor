@@ -55,7 +55,7 @@ export async function placeBid(input: PlaceBidInput) {
     clientSecret = intent.client_secret;
   }
 
-  db.prepare(
+  db().prepare(
     `INSERT INTO bids (id, sponsor, link_url, logo_path, amount_cents, currency, status, payment_intent_id, created_at)
      VALUES (@id, @sponsor, @link_url, @logo_path, @amount_cents, 'usd', @status, @payment_intent_id, @created_at)`,
   ).run({
@@ -100,14 +100,14 @@ export async function promoteBid(bidId: string) {
     throw new BidError("Someone outbid you while your card was authorising — your hold was released.");
   }
 
-  db.prepare(`UPDATE bids SET status = 'leading' WHERE id = ?`).run(bid.id);
+  db().prepare(`UPDATE bids SET status = 'leading' WHERE id = ?`).run(bid.id);
   await outbidEveryoneBelow(bid.id);
   return getBid(bid.id)!;
 }
 
 /** Release every other standing hold — only one bid owns the cup at a time. */
 async function outbidEveryoneBelow(winnerId: string) {
-  const losers = db
+  const losers = db()
     .prepare(`SELECT * FROM bids WHERE status = 'leading' AND id != ?`)
     .all(winnerId) as Bid[];
   for (const loser of losers) await releaseBid(loser.id, "outbid");
@@ -125,7 +125,7 @@ export async function releaseBid(bidId: string, status: "outbid" | "cancelled") 
       console.warn(`[auction] could not cancel ${bid.payment_intent_id}`, err);
     }
   }
-  db.prepare(`UPDATE bids SET status = ?, released_at = ? WHERE id = ?`).run(status, Date.now(), bidId);
+  db().prepare(`UPDATE bids SET status = ?, released_at = ? WHERE id = ?`).run(status, Date.now(), bidId);
 }
 
 /** The morning run: take the money from whoever is holding the spot. */
@@ -135,6 +135,6 @@ export async function captureLeader() {
   if (stripe && lead.payment_intent_id) {
     await stripe.paymentIntents.capture(lead.payment_intent_id);
   }
-  db.prepare(`UPDATE bids SET status = 'captured', captured_at = ? WHERE id = ?`).run(Date.now(), lead.id);
+  db().prepare(`UPDATE bids SET status = 'captured', captured_at = ? WHERE id = ?`).run(Date.now(), lead.id);
   return getBid(lead.id)!;
 }

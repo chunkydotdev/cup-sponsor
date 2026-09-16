@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.github
+data
+shots
+.scratch
+public/logos/*
+!public/logos/.gitkeep
+.env*
+!.env.example
+README.md

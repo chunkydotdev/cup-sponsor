@@ -3,13 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 
 const DATA_DIR = process.env.CUPSPONSOR_DATA_DIR ?? path.join(process.cwd(), "data");
-fs.mkdirSync(DATA_DIR, { recursive: true });
 
 declare global {
   var __cupsponsorDb: Database.Database | undefined;
 }
 
 function open() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
   const db = new Database(path.join(DATA_DIR, "cupsponsor.db"));
   db.pragma("journal_mode = WAL");
   db.exec(`
@@ -42,7 +42,14 @@ function open() {
   return db;
 }
 
-export const db = globalThis.__cupsponsorDb ?? (globalThis.__cupsponsorDb = open());
+/**
+ * Opened on first use, not on import. Opening it at module load meant the build
+ * touched it too — Next evaluates every route to collect page data, and several
+ * workers racing to create the same new database returned SQLITE_BUSY.
+ */
+export function db() {
+  return (globalThis.__cupsponsorDb ??= open());
+}
 
 /** A bid is one sponsor's standing offer for tomorrow's cup. */
 export type BidStatus =
@@ -67,13 +74,13 @@ export type Bid = {
 };
 
 export function leadingBid(): Bid | undefined {
-  return db.prepare(`SELECT * FROM bids WHERE status = 'leading' ORDER BY amount_cents DESC LIMIT 1`).get() as
+  return db().prepare(`SELECT * FROM bids WHERE status = 'leading' ORDER BY amount_cents DESC LIMIT 1`).get() as
     | Bid
     | undefined;
 }
 
 export function bidHistory(limit = 25): Bid[] {
-  return db
+  return db()
     .prepare(
       `SELECT * FROM bids WHERE status IN ('leading','outbid','captured')
        ORDER BY created_at DESC LIMIT ?`,
@@ -82,5 +89,5 @@ export function bidHistory(limit = 25): Bid[] {
 }
 
 export function getBid(id: string): Bid | undefined {
-  return db.prepare(`SELECT * FROM bids WHERE id = ?`).get(id) as Bid | undefined;
+  return db().prepare(`SELECT * FROM bids WHERE id = ?`).get(id) as Bid | undefined;
 }

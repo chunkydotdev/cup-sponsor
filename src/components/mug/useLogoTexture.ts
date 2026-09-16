@@ -58,7 +58,7 @@ function drawPlaceholder(ctx: CanvasRenderingContext2D, WRAP_H: number) {
     ctx.font = `600 ${Math.round(h * 0.17)}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
     ctx.fillText("YOUR LOGO", cx, y + h * 0.42);
     ctx.font = `500 ${Math.round(h * 0.1)}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-    ctx.fillText("tomorrow morning", cx, y + h * 0.65);
+    ctx.fillText("for two weeks", cx, y + h * 0.65);
   }
 }
 
