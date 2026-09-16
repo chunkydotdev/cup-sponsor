@@ -14,7 +14,7 @@ services:
     env_file: .env
     # Caddy terminates TLS; nothing here should be reachable from outside.
     ports:
-      - "127.0.0.1:3022:3000"
+      - "127.0.0.1:3042:3000"
     volumes:
       # Everything mutable: the auction database, the uploaded sponsor logos and
       # the morning photographs. One volume, so one thing to back up. Seeded

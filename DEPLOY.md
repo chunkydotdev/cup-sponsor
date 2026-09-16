@@ -33,7 +33,7 @@ docker compose up -d --build
 docker compose logs -f cupsponsor
 ```
 
-It listens on `127.0.0.1:3022`, deliberately unreachable from outside.
+It listens on `127.0.0.1:3042`, deliberately unreachable from outside.
 
 ## Caddy
 
@@ -41,7 +41,7 @@ If Caddy runs **on the host**, add to the Caddyfile:
 
 ```
 cup.junghard.com {
-    reverse_proxy 127.0.0.1:3022
+    reverse_proxy 127.0.0.1:3042
 }
 ```
 
