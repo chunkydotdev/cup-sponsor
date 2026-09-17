@@ -1,14 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
+import { loadStripe } from "@stripe/stripe-js/pure";
 import { formatMoney } from "@/lib/money";
 import type { Spot } from "@/lib/spot";
 import { track } from "@/lib/track";
 
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
 
 /** The card step. Only mounted once Stripe has handed us a client secret. */
 function CardStep({ bidId, onDone }: { bidId: string; onDone: () => void }) {
@@ -77,6 +76,10 @@ export function BidPanel({
   onPlaced: () => void;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
+  // Loaded here, not at module scope: Stripe.js sets its own cookies the
+  // moment it loads, and someone who only came to look should never get them.
+  // The panel is only mounted once it is open.
+  const stripePromise = useMemo(() => (publishableKey ? loadStripe(publishableKey) : null), []);
   const [logoPath, setLogoPath] = useState<string | null>(null);
   const [sponsor, setSponsor] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
@@ -261,6 +264,19 @@ export function BidPanel({
         >
           {busy ? "Working…" : spot.demoMode ? "Take the spot (demo)" : "Continue to hold"}
         </button>
+
+        <p className="text-xs text-foreground/40">
+          By continuing you accept the{" "}
+          <a href="/terms" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-brew">
+            terms
+          </a>
+          : the bid is binding, your logo is yours to print, and it is shown publicly. Your data is
+          handled as in the{" "}
+          <a href="/privacy" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-brew">
+            privacy policy
+          </a>
+          .
+        </p>
 
         {spot.demoMode && (
           <p className="text-xs text-foreground/40">

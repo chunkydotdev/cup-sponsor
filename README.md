@@ -53,6 +53,9 @@ however you like.
   band's own aspect ratio; get that wrong and every logo comes out stretched.
 - `src/lib/auction.ts` — bids, holds and releases. The only file that decides
   who owns the cup.
+- `src/app/terms/` and `src/app/privacy/` — the legal pages. Company details
+  live in one place, `src/components/Legal.tsx`, and the rules modal and bid
+  panel link to both.
 - `src/app/api/` — spot, bid, confirm, upload, presence, stats, capture, webhook.
 - `src/lib/db.ts` — SQLite. Swap this out for a hosted database before this
   runs anywhere serverless.

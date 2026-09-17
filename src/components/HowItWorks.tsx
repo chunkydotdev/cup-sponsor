@@ -1,3 +1,5 @@
+import { COMPANY } from "./Legal";
+
 const STEPS = [
   {
     title: "Upload your logo",
@@ -36,6 +38,21 @@ export function HowItWorks() {
           </li>
         ))}
       </ol>
+      <p className="mt-6 border-t border-line pt-4 text-xs leading-relaxed text-foreground/40">
+        Run by {COMPANY.name} (org. nr {COMPANY.orgNumber}), {COMPANY.address}.{" "}
+        <a href={`mailto:${COMPANY.email}`} className="hover:text-brew">
+          {COMPANY.email}
+        </a>
+        . The rules in full are in the{" "}
+        <a href="/terms" className="underline underline-offset-2 hover:text-brew">
+          terms
+        </a>
+        , and what we do with your data in the{" "}
+        <a href="/privacy" className="underline underline-offset-2 hover:text-brew">
+          privacy policy
+        </a>
+        .
+      </p>
     </section>
   );
 }

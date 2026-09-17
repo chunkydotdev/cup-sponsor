@@ -76,6 +76,12 @@ export function CupsponsorApp({
               >
                 Sponsors
               </button>
+              <a href="/terms" className="underline-offset-2 hover:text-brew hover:underline">
+                Terms
+              </a>
+              <a href="/privacy" className="underline-offset-2 hover:text-brew hover:underline">
+                Privacy
+              </a>
             </div>
           </div>
 
