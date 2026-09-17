@@ -5,6 +5,7 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import { loadStripe } from "@stripe/stripe-js";
 import { formatMoney } from "@/lib/money";
 import type { Spot } from "@/lib/spot";
+import { track } from "@/lib/track";
 
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
@@ -33,6 +34,7 @@ function CardStep({ bidId, onDone }: { bidId: string; onDone: () => void }) {
           setBusy(false);
           return;
         }
+        track("card authorised");
         const res = await fetch("/api/bid/confirm", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -99,6 +101,7 @@ export function BidPanel({
     if (!res.ok) return setError(json.error ?? "That logo would not upload.");
     setLogoPath(json.logoPath);
     onLogoPreview(json.logoPath);
+    track("logo uploaded");
   }
 
   async function placeBid() {
@@ -118,6 +121,7 @@ export function BidPanel({
     const json = await res.json();
     setBusy(false);
     if (!res.ok) return setError(json.error ?? "That bid did not go through.");
+    track("bid placed", { amount: Math.round(Number(amount)) });
     if (json.demo || !json.clientSecret) {
       setDone(true);
       onPlaced();

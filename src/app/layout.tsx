@@ -12,19 +12,26 @@ export const metadata: Metadata = {
     "One auction for one coffee mug. Whoever holds the highest bid on 20 September gets their logo printed on it for real, and that mug is in every morning photo for the fortnight after. Bids are held, never charged — get doubled and your money is back the same second.",
 };
 
-const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
+/**
+ * Self-hosted Plausible. The newer script identifies the site by its own
+ * filename rather than a data-domain attribute, so the whole URL is the
+ * setting. Inlined at build time like every NEXT_PUBLIC_ value.
+ */
+const plausibleSrc = process.env.NEXT_PUBLIC_PLAUSIBLE_SRC;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full overflow-hidden">
         {children}
-        {plausibleDomain && (
-          <Script
-            defer
-            data-domain={plausibleDomain}
-            src={`${process.env.NEXT_PUBLIC_PLAUSIBLE_HOST ?? "https://plausible.io"}/js/script.js`}
-          />
+        {plausibleSrc && (
+          <>
+            <Script async src={plausibleSrc} strategy="afterInteractive" />
+            {/* Queues events fired before the script has finished loading. */}
+            <Script id="plausible-init" strategy="afterInteractive">
+              {`window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()`}
+            </Script>
+          </>
         )}
       </body>
     </html>

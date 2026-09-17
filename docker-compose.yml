@@ -6,8 +6,7 @@ services:
         # Compose reads these from the .env file sitting next to this one.
         # They are inlined at build time, so a change here needs a rebuild.
         NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
-        NEXT_PUBLIC_PLAUSIBLE_DOMAIN: ${NEXT_PUBLIC_PLAUSIBLE_DOMAIN:-}
-        NEXT_PUBLIC_PLAUSIBLE_HOST: ${NEXT_PUBLIC_PLAUSIBLE_HOST:-}
+        NEXT_PUBLIC_PLAUSIBLE_SRC: ${NEXT_PUBLIC_PLAUSIBLE_SRC:-}
     image: cupsponsor:latest
     container_name: cupsponsor
     restart: unless-stopped

@@ -4,7 +4,8 @@
  */
 import { db } from "./db";
 
-const SITE = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
+// All server-side: the stats API key must never reach the browser.
+const SITE = process.env.PLAUSIBLE_SITE_ID;
 const KEY = process.env.PLAUSIBLE_API_KEY;
 const HOST = process.env.PLAUSIBLE_HOST ?? "https://plausible.io";
 
