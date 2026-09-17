@@ -59,7 +59,19 @@ export function CupsponsorApp({
             <p className="mt-0.5 text-xs text-foreground/60 sm:text-sm">
               {spot.leader ? (
                 <>
-                  <span className="text-brew-bright">{spot.leader.sponsor}</span> is on the cup at{" "}
+                  {spot.leader.linkUrl ? (
+                    <a
+                      href={spot.leader.linkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-brew-bright underline-offset-2 hover:underline"
+                    >
+                      {spot.leader.sponsor}
+                    </a>
+                  ) : (
+                    <span className="text-brew-bright">{spot.leader.sponsor}</span>
+                  )}{" "}
+                  is on the cup at{" "}
                   <span className="font-mono">{formatMoney(spot.leader.amountCents)}</span>.
                 </>
               ) : (

@@ -26,6 +26,26 @@ export type PlaceBidInput = {
  * actually goes out. The caller confirms the returned client secret, then
  * calls `promoteBid`.
  */
+/**
+ * The link is shown publicly as an href, so it has to be a real web address.
+ * Anything else (javascript:, data:, garbage) is rejected rather than stored.
+ */
+function cleanLink(raw: string | null): string | null {
+  const text = raw?.trim();
+  if (!text) return null;
+  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(text) ? text : `https://${text}`;
+  let url: URL;
+  try {
+    url = new URL(withScheme);
+  } catch {
+    throw new BidError("That link does not look like a web address.");
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new BidError("The link has to start with http:// or https://.");
+  }
+  return url.toString();
+}
+
 export async function placeBid(input: PlaceBidInput) {
   if (biddingClosed()) throw new BidError("Bidding has closed. The cup is spoken for.", 409);
   const lead = leadingBid();
@@ -39,6 +59,7 @@ export async function placeBid(input: PlaceBidInput) {
   }
   if (!input.sponsor.trim()) throw new BidError("Sponsor name is required.");
   if (!input.logoPath) throw new BidError("A logo is required — it is the thing we print.");
+  const linkUrl = cleanLink(input.linkUrl);
 
   const id = randomUUID();
   const now = Date.now();
@@ -64,7 +85,7 @@ export async function placeBid(input: PlaceBidInput) {
   ).run({
     id,
     sponsor: input.sponsor.trim(),
-    link_url: input.linkUrl,
+    link_url: linkUrl,
     logo_path: input.logoPath,
     amount_cents: input.amountCents,
     status: demoMode ? "leading" : "pending",
