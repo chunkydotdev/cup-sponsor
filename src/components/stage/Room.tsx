@@ -5,7 +5,16 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { COASTER } from "./Coaster";
 import { ROOM, TABLE } from "./palette";
-import { coasterTexture, paneTexture, shadowTexture, softDot, wallTexture, woodTexture } from "./textures";
+import {
+  coasterTexture,
+  mulberry32,
+  paneTexture,
+  shadowTexture,
+  shaftTexture,
+  softDot,
+  wallTexture,
+  woodTexture,
+} from "./textures";
 
 /** Where the window is, as a unit direction on the floor plane. */
 export const WINDOW_DIR = new THREE.Vector3(
@@ -163,45 +172,156 @@ function Window() {
   );
 }
 
-/** Dust, drifting up through the light. It is what makes the room look lit. */
-function Dust({ count = 200 }: { count?: number }) {
+/**
+ * The beam. Low sun through the window lands on the table, and it is the same
+ * line for the dust and for the glow: from the middle of the pane to just
+ * short of the cup.
+ */
+const BEAM_FROM = WINDOW_DIR.clone().multiplyScalar(ROOM.radius - 0.2).setY(1.35);
+const BEAM_TO = WINDOW_DIR.clone().multiplyScalar(1.6).setY(0.15);
+const BEAM_RADIUS = { window: 1.0, table: 0.7 };
+
+/**
+ * The shaft of light itself, faked: a few nested open cones along the beam,
+ * additive and nearly transparent, so the middle is brighter than the edges
+ * the way a column of lit air is. Each cone fades out where its surface turns
+ * away from the camera — a cone with a visible silhouette is a lampshade, not
+ * light. It does not touch the cup: it ends at the table's edge, so the
+ * ceramic never picks up a smear.
+ */
+const SHAFT_SHADER = {
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vView;
+    void main() {
+      vUv = uv;
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      vNormal = normalize(normalMatrix * normal);
+      vView = normalize(-mv.xyz);
+      gl_Position = projectionMatrix * mv;
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform vec3 color;
+    uniform float opacity;
+    uniform sampler2D map;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vView;
+    void main() {
+      float facing = abs(dot(normalize(vNormal), normalize(vView)));
+      float along = texture2D(map, vUv).a;
+      float a = pow(facing, 1.6) * along * opacity;
+      gl_FragColor = vec4(color * a, a);
+    }
+  `,
+};
+
+function LightShaft() {
+  const texture = useMemo(() => (typeof document === "undefined" ? null : shaftTexture()), []);
+  useEffect(() => () => texture?.dispose(), [texture]);
+
+  const material = useMemo(() => {
+    if (!texture) return null;
+    return new THREE.ShaderMaterial({
+      ...SHAFT_SHADER,
+      uniforms: {
+        color: { value: new THREE.Color(ROOM.daylight) },
+        opacity: { value: 0.07 },
+        map: { value: texture },
+      },
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      blending: THREE.CustomBlending,
+      blendSrc: THREE.OneFactor,
+      blendDst: THREE.OneFactor,
+    });
+  }, [texture]);
+  useEffect(() => () => material?.dispose(), [material]);
+
+  const { length, midpoint, quaternion } = useMemo(() => {
+    const axis = BEAM_FROM.clone().sub(BEAM_TO);
+    const length = axis.length();
+    const midpoint = BEAM_TO.clone().add(BEAM_FROM).multiplyScalar(0.5);
+    const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis.normalize());
+    return { length, midpoint, quaternion };
+  }, []);
+
+  if (!material) return null;
+  return (
+    <group position={midpoint} quaternion={quaternion}>
+      {[1, 0.66, 0.33].map((k) => (
+        <mesh key={k} material={material}>
+          <cylinderGeometry args={[BEAM_RADIUS.window * k, BEAM_RADIUS.table * k, length, 48, 1, true]} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * Dust, hanging in the light. Motes scattered over the whole wall read as a
+ * starfield, so these live inside the shaft only, dense in its middle and
+ * dim at its edge, and they hang and bob rather than rise: the shape of the
+ * shaft is the whole effect.
+ */
+function Dust({ count = 520 }: { count?: number }) {
   const points = useRef<THREE.Points>(null);
   const sprite = useMemo(() => (typeof document === "undefined" ? null : softDot()), []);
   useEffect(() => () => sprite?.dispose(), [sprite]);
 
-  const { geometry, speeds } = useMemo(() => {
-    let seed = 0x0ff33;
-    const random = () => {
-      seed = (seed + 0x6d2b79f5) | 0;
-      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
+  const { geometry, home, motion } = useMemo(() => {
+    const random = mulberry32(0x0ff33);
     const positions = new Float32Array(count * 3);
-    const rates = new Float32Array(count);
+    const colors = new Float32Array(count * 3);
+    const move = new Float32Array(count * 2);
+    const across = new THREE.Vector3(WINDOW_DIR.z, 0, -WINDOW_DIR.x);
+    const axis = BEAM_TO.clone().sub(BEAM_FROM);
     for (let i = 0; i < count; i++) {
-      // Clustered between the window and the cup, where the light is.
+      // t runs from the window (0) to the table (1). Across and up are a
+      // point in the unit disc, so the motes fill the cone and nothing else.
       const t = random();
-      const along = WINDOW_DIR.clone().multiplyScalar(t * (ROOM.radius - 1));
-      positions[i * 3] = along.x + (random() - 0.5) * 2.4;
-      positions[i * 3 + 1] = ROOM.floorY + random() * 3;
-      positions[i * 3 + 2] = along.z + (random() - 0.5) * 2.4;
-      rates[i] = 0.01 + random() * 0.03;
+      let side = 0;
+      let up = 0;
+      do {
+        side = (random() - 0.5) * 2;
+        up = (random() - 0.5) * 2;
+      } while (side * side + up * up > 1);
+      const radius = BEAM_RADIUS.window + (BEAM_RADIUS.table - BEAM_RADIUS.window) * t;
+      const p = BEAM_FROM.clone().addScaledVector(axis, t).addScaledVector(across, side * radius);
+      positions[i * 3] = p.x;
+      positions[i * 3 + 1] = p.y + up * radius;
+      positions[i * 3 + 2] = p.z;
+      // Brightest down the middle, and never all the same.
+      const core = 1 - (side * side + up * up);
+      const glow = core * (0.3 + random() * 0.7);
+      colors[i * 3] = colors[i * 3 + 1] = colors[i * 3 + 2] = glow;
+      move[i * 2] = random() * Math.PI * 2;
+      move[i * 2 + 1] = 0.15 + random() * 0.3;
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    return { geometry: geo, speeds: rates };
+    geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    return { geometry: geo, home: positions.slice(), motion: move };
   }, [count]);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
-  useFrame((_, delta) => {
+  useFrame(({ clock }) => {
     const attr = points.current?.geometry.getAttribute("position") as THREE.BufferAttribute | undefined;
     if (!attr) return;
+    const t = clock.getElapsedTime();
     for (let i = 0; i < count; i++) {
-      let y = attr.getY(i) + speeds[i] * delta;
-      if (y > ROOM.floorY + 3) y = ROOM.floorY;
-      attr.setY(i, y);
+      const phase = motion[i * 2];
+      const rate = motion[i * 2 + 1];
+      attr.setXYZ(
+        i,
+        home[i * 3] + Math.sin(t * rate + phase) * 0.05,
+        home[i * 3 + 1] + Math.sin(t * rate * 0.7 + phase * 1.3) * 0.06,
+        home[i * 3 + 2] + Math.cos(t * rate * 0.9 + phase) * 0.05,
+      );
     }
     attr.needsUpdate = true;
   });
@@ -212,7 +332,8 @@ function Dust({ count = 200 }: { count?: number }) {
       <pointsMaterial
         map={sprite}
         color={ROOM.daylight}
-        size={0.03}
+        vertexColors
+        size={0.035}
         sizeAttenuation
         transparent
         opacity={0.3}
@@ -294,6 +415,7 @@ export function Room() {
       <Floor />
       <Table />
       <Window />
+      <LightShaft />
       <Dust />
     </group>
   );

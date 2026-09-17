@@ -79,6 +79,9 @@ export function Stage({
           <directionalLight position={[-key.x, 1.6, -key.z]} intensity={0.85} color="#a08a6c" />
           <Environment resolution={256}>
             <Lightformer form="rect" intensity={3.2} position={[key.x, 2.2, key.z]} scale={[3, 5, 1]} color="#ffe6c4" />
+            {/* The pane itself, small and hot, so the glaze picks up one crisp
+                window rather than a general brightness. */}
+            <Lightformer form="rect" intensity={7} position={[key.x, 1.5, key.z]} scale={[1.1, 2.2, 1]} color="#fff7ea" />
             <Lightformer form="rect" intensity={0.6} position={[-key.x, 1.4, -key.z]} scale={[5, 4, 1]} color="#7d6248" />
             <Lightformer form="rect" intensity={0.2} position={[0, -3, 0]} scale={[9, 9, 1]} color="#2a1a10" />
           </Environment>

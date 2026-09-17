@@ -71,10 +71,12 @@ function Ceramic({ opacity }: { opacity: number }) {
   return (
     <meshPhysicalMaterial
       color="#f5f3ef"
-      roughness={0.26}
+      roughness={0.22}
       metalness={0}
       clearcoat={0.9}
-      clearcoatRoughness={0.14}
+      clearcoatRoughness={0.12}
+      // Glaze lives in the reflection: a mug that shows nothing of the room is plastic.
+      envMapIntensity={1.35}
       side={THREE.DoubleSide}
       transparent={opacity < 1}
       opacity={opacity}

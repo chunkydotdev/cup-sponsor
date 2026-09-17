@@ -40,6 +40,22 @@ export function FramedPhoto({
           toneMapped={false}
         />
       </mesh>
+      {/* The glass: a black glossy sheet added on top contributes nothing but
+          its reflection, so the window slides across the print as you walk
+          past without ever tinting it. */}
+      <mesh position={[0, 0, 0.013]}>
+        <planeGeometry args={[width + border, height + border]} />
+        <meshPhysicalMaterial
+          color="#000000"
+          roughness={0.12}
+          metalness={0}
+          clearcoat={1}
+          clearcoatRoughness={0.1}
+          transparent
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
     </group>
   );
 }

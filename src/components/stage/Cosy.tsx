@@ -7,7 +7,7 @@ import { Duck } from "./Duck";
 import { Teddy } from "./Teddy";
 import { PropShadow } from "./Room";
 import { ROOM } from "./palette";
-import { clothTexture, rugTexture, softDot } from "./textures";
+import { clothTexture, rugTexture, softDot, softPuff } from "./textures";
 
 /** Put something on the wall of the round room, facing in. */
 function at(azimuth: number, radius: number, y: number) {
@@ -83,6 +83,10 @@ function Pole() {
 /** A floor lamp: the room's warm light, opposite the cold one. */
 function FloorLamp({ azimuth }: { azimuth: number }) {
   const base = at(azimuth, 5.15, ROOM.floorY);
+  const pool = useMemo(() => (typeof document === "undefined" ? null : softDot()), []);
+  useEffect(() => () => pool?.dispose(), [pool]);
+  const shade = useMemo(() => (typeof document === "undefined" ? null : clothTexture("#f1d5ad")), []);
+  useEffect(() => () => shade?.dispose(), [shade]);
   return (
     <group position={base}>
       <mesh position={[0, 0.03, 0]}>
@@ -93,23 +97,39 @@ function FloorLamp({ azimuth }: { azimuth: number }) {
         <cylinderGeometry args={[0.035, 0.045, 2.3, 16]} />
         <meshStandardMaterial color="#2b1c11" roughness={0.45} metalness={0.45} />
       </mesh>
-      {/* The shade glows from inside rather than being lit from outside. */}
-      <mesh position={[0, 2.5, 0]}>
-        <cylinderGeometry args={[0.42, 0.58, 0.62, 32, 1, true]} />
-        <meshStandardMaterial
-          color="#f6dcb4"
-          emissive="#ffca7d"
-          emissiveIntensity={1.5}
-          roughness={1}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
+      {/* The shade glows from inside rather than being lit from outside —
+          but through cloth, or it is a lightbox. */}
+      {shade && (
+        <mesh position={[0, 2.5, 0]}>
+          <cylinderGeometry args={[0.42, 0.58, 0.62, 32, 1, true]} />
+          <meshStandardMaterial
+            map={shade}
+            color="#e8c99c"
+            emissive="#ffc27a"
+            emissiveMap={shade}
+            emissiveIntensity={0.85}
+            roughness={1}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      )}
       <pointLight position={[0, 2.45, 0]} intensity={14} distance={9} decay={2} color="#ffc47e" />
-      {/* The pool it throws on the floor. */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-        <circleGeometry args={[1.5, 48]} />
-        <meshBasicMaterial color="#ffb765" transparent opacity={0.09} depthWrite={false} toneMapped={false} />
-      </mesh>
+      {/* The pool it throws on the floor: soft-edged, or it reads as a disc
+          of paint rather than light. */}
+      {pool && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+          <planeGeometry args={[3.6, 3.6]} />
+          <meshBasicMaterial
+            map={pool}
+            color="#ffb765"
+            transparent
+            opacity={0.26}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
     </group>
   );
 }
@@ -175,9 +195,9 @@ function SideTable({ azimuth }: { azimuth: number }) {
 }
 
 /** Steam. The cup is hot, and nothing says that like the air above it moving. */
-function Steam({ from, count = 170 }: { from: [number, number, number]; count?: number }) {
+function Steam({ from, count = 120 }: { from: [number, number, number]; count?: number }) {
   const points = useRef<THREE.Points>(null);
-  const sprite = useMemo(() => (typeof document === "undefined" ? null : softDot()), []);
+  const sprite = useMemo(() => (typeof document === "undefined" ? null : softPuff()), []);
   useEffect(() => () => sprite?.dispose(), [sprite]);
 
   const { geometry, seeds } = useMemo(() => {
@@ -189,6 +209,7 @@ function Steam({ from, count = 170 }: { from: [number, number, number]; count?: 
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
     const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
     const s = new Float32Array(count * 2);
     for (let i = 0; i < count; i++) {
       s[i * 2] = random();
@@ -197,13 +218,15 @@ function Steam({ from, count = 170 }: { from: [number, number, number]; count?: 
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
     return { geometry: geo, seeds: s };
   }, [count]);
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   useFrame(({ clock }, delta) => {
     const attr = points.current?.geometry.getAttribute("position") as THREE.BufferAttribute | undefined;
-    if (!attr) return;
+    const tint = points.current?.geometry.getAttribute("color") as THREE.BufferAttribute | undefined;
+    if (!attr || !tint) return;
     const t = clock.getElapsedTime();
     for (let i = 0; i < count; i++) {
       let life = attr.getY(i) + seeds[i * 2 + 1] * delta;
@@ -211,20 +234,28 @@ function Steam({ from, count = 170 }: { from: [number, number, number]; count?: 
       attr.setY(i, life);
       // Rises, widens, and wanders — steam never goes straight up.
       const phase = seeds[i * 2] * Math.PI * 2;
-      const drift = Math.sin(t * 0.6 + phase) * 0.1 * life;
-      attr.setX(i, Math.sin(phase) * 0.062 * (0.3 + life) + drift * 0.6);
-      attr.setZ(i, Math.cos(phase) * 0.062 * (0.3 + life) + drift * 0.3);
+      const drift = Math.sin(t * 0.6 + phase) * 0.16 * life;
+      const spread = 0.1 * (0.3 + life * 1.6);
+      attr.setX(i, Math.sin(phase) * spread + drift * 0.6);
+      attr.setZ(i, Math.cos(phase) * spread + drift * 0.3);
+      // Additive, so the colour is the alpha: it comes in quickly off the
+      // coffee and thins out slowly into the room. Without this every mote
+      // pops in and out at full strength and the plume reads as a dotted line.
+      const fade = Math.min(1, life * 5) * Math.pow(1 - life, 1.4);
+      tint.setXYZ(i, fade, fade, fade);
     }
     attr.needsUpdate = true;
+    tint.needsUpdate = true;
   });
 
   if (!sprite) return null;
   return (
-    <points ref={points} geometry={geometry} position={from} scale={[1, 0.62, 1]}>
+    <points ref={points} geometry={geometry} position={from} scale={[1, 0.75, 1]}>
       <pointsMaterial
         map={sprite}
         color="#ffe9cf"
-        size={0.07}
+        vertexColors
+        size={0.28}
         sizeAttenuation
         transparent
         opacity={0.055}

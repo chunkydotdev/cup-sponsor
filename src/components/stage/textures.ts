@@ -3,7 +3,7 @@
 import * as THREE from "three";
 
 /** Seeded noise, so the room is identical on every load and in every shot. */
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   return () => {
     seed |= 0;
     seed = (seed + 0x6d2b79f5) | 0;
@@ -33,11 +33,14 @@ function toTexture(canvas: HTMLCanvasElement) {
 
 /**
  * The wall, wrapped round the room: u runs all the way about, v is height. A
- * vertical gradient and nothing else — anything directional has to come from
- * the actual light now that the camera walks around the room.
+ * vertical gradient for the light, then plaster over it — soft mottling and a
+ * fine grain — because a wall with no surface at all reads as a backdrop.
+ * Anything directional still has to come from the actual light, now that the
+ * camera walks around the room. The tile is mirrored round the room rather
+ * than repeated, which is what hides the seam.
  */
 export function wallTexture(top: string, mid: string, foot: string) {
-  const w = 8;
+  const w = 1024;
   const h = 512;
   const canvas = document.createElement("canvas");
   canvas.width = w;
@@ -51,7 +54,30 @@ export function wallTexture(top: string, mid: string, foot: string) {
   g.addColorStop(1, "#080503");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
-  return toTexture(canvas);
+
+  const random = mulberry32(0x9a11);
+  for (let i = 0; i < 90; i++) {
+    const shade = random();
+    blob(
+      ctx,
+      random() * w,
+      random() * h,
+      60 + random() * 220,
+      shade > 0.5 ? "#7a5232" : "#1e120a",
+      0.3,
+    );
+  }
+  ctx.globalAlpha = 0.06;
+  for (let i = 0; i < 9000; i++) {
+    ctx.fillStyle = random() > 0.5 ? "#000" : "#c9a37c";
+    ctx.fillRect(random() * w, random() * h, 1 + Math.round(random()), 1);
+  }
+  ctx.globalAlpha = 1;
+
+  const tex = toTexture(canvas);
+  tex.wrapS = THREE.MirroredRepeatWrapping;
+  tex.repeat.set(6, 1);
+  return tex;
 }
 
 /** Wood: grain and a little colour variation, no baked light. */
@@ -71,6 +97,43 @@ export function woodTexture(base: string, seed = 0xc0ffee, strokes = 3000) {
     ctx.fillRect(random() * size, y, 40 + random() * 150, 1 + Math.round(random()));
   }
   ctx.globalAlpha = 1;
+  return toTexture(canvas);
+}
+
+/**
+ * A puff with no core at all — for steam. The dot sprite has a bright centre,
+ * and a plume of bright centres is a plume of dots however you blend it.
+ */
+export function softPuff() {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, "rgba(255,255,255,0.5)");
+  g.addColorStop(0.3, "rgba(255,255,255,0.28)");
+  g.addColorStop(0.65, "rgba(255,255,255,0.07)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  return toTexture(canvas);
+}
+
+/** Fades along its length: full at the window end, gone at the table. */
+export function shaftTexture() {
+  const w = 8;
+  const h = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "rgba(255,255,255,1)");
+  g.addColorStop(0.45, "rgba(255,255,255,0.55)");
+  g.addColorStop(0.85, "rgba(255,255,255,0.12)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
   return toTexture(canvas);
 }
 

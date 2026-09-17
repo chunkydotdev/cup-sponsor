@@ -43,9 +43,11 @@ however you like.
 
 ## Layout
 
-- `src/components/stage/` — the room. Wall, table, light shaft and dust are
-  baked canvas textures rather than lights, because the shape of the light is
-  what sells it and baking costs nothing.
+- `src/components/stage/` — the room. Wall, table and shadows are baked canvas
+  textures rather than lights, because the shape of the light is what sells it
+  and baking costs nothing. The shaft from the window is a few nested additive
+  cones that fade where they turn away from the camera, with the dust hanging
+  inside it; the steam is additive puffs that fade in and out over their life.
 - `src/components/mug/` — the WebGL cup: lathe profile, tube handle, coffee,
   and the logo baked into a full-wrap texture. The wrap canvas is built to the
   band's own aspect ratio; get that wrong and every logo comes out stretched.
