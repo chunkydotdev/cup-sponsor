@@ -6,10 +6,30 @@ import "./globals.css";
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
+const TITLE = "cupsponsor — your logo on the mug, every morning for two weeks";
+const DESCRIPTION =
+  "One auction for one coffee mug. Whoever holds the highest bid on 20 September gets their logo printed on it for real, and that mug is in every morning photo for the fortnight after. Bids are held, never charged — get doubled and your money is back the same second.";
+
 export const metadata: Metadata = {
-  title: "cupsponsor — your logo on the mug, every morning for two weeks",
-  description:
-    "One auction for one coffee mug. Whoever holds the highest bid on 20 September gets their logo printed on it for real, and that mug is in every morning photo for the fortnight after. Bids are held, never charged — get doubled and your money is back the same second.",
+  // Makes the og image URL absolute, which the crawlers require.
+  metadataBase: new URL(process.env.APP_BASE_URL ?? "https://cup.junghard.com"),
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: "/",
+    siteName: "cupsponsor",
+    type: "website",
+    // The room with the empty cup on the table. Reshoot with scripts/og-shot.mjs.
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "A white mug on a round table in a warm dark room, waiting for a logo" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/og.png"],
+  },
 };
 
 /**
